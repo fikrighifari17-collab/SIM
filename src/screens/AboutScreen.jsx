@@ -40,14 +40,14 @@ export default function AboutScreen() {
 
   const helpDetails = {
     callCenter: {
-      title: 'Call Center NTMC POLRI',
+      title: 'Call Center & Support Simulation',
       icon: 'call-outline',
-      phone: '1500669',
-      whatsapp: '0811-2115-006',
-      desc: 'Pusat bantuan resmi 24 jam Korlantas POLRI untuk informasi SIM, pengaduan keluhan, serta informasi lalu lintas nasional.',
+      phone: '0800-1234-5678',
+      whatsapp: '0812-9999-8888',
+      desc: 'Pusat bantuan simulasi 24 jam untuk informasi SIM, pengaduan keluhan, serta simulasi informasi pengajuan.',
       features: [
-        'Layanan Hotline 24 Jam (Telepon: 1500669)',
-        'WhatsApp Official NTMC: 0811-2115-006',
+        'Layanan Hotline Simulasi (Telepon: 0800-1234-5678)',
+        'WhatsApp Support Simulasi: 0812-9999-8888',
         'Bantuan kendala pengajuan SIM & E-Rikkes / EPPsi',
         'Informasi pengiriman SIM fisik PT Pos Indonesia',
       ],
@@ -55,12 +55,12 @@ export default function AboutScreen() {
     email: {
       title: 'Email Layanan Pelanggan',
       icon: 'mail-outline',
-      emailAddress: 'support@jejaksim.polri.go.id',
-      officialEmail: 'ntmc@korlantas.polri.go.id',
-      desc: 'Layanan dukungan pelanggan resmi via surel untuk bantuan verifikasi dokumen, perubahan data, dan klaim pengiriman.',
+      emailAddress: 'support@jejak-sim.id',
+      officialEmail: 'help@jejak-sim.id',
+      desc: 'Layanan dukungan pelanggan via surel untuk bantuan verifikasi dokumen, perubahan data, dan klaim pengiriman.',
       features: [
-        'Support Email: support@jejaksim.polri.go.id',
-        'Email Resmi Korlantas: ntmc@korlantas.polri.go.id',
+        'Support Email: support@jejak-sim.id',
+        'Email Helpdesk: help@jejak-sim.id',
         'Waktu Respon Balasan: Maksimal 1x24 jam kerja',
         'Sertakan Nomor Resi Pengajuan SIM saat mengirim email',
       ],
@@ -73,7 +73,7 @@ export default function AboutScreen() {
         'Enkripsi Data Biometrik Wajah & NIK KTP level militer AES-256 bit',
         'Integrasi resmi terverifikasi dengan Dukcapil Kemendagri RI',
         'Data pribadi pengguna tidak pernah diperjualbelikan kepada pihak ketiga',
-        'SIM fisik dikirim dalam amplop tertutup bersegel aman POLRI',
+        'SIM fisik dikirim dalam amplop tertutup bersegel aman',
       ],
     },
   };
@@ -114,7 +114,7 @@ export default function AboutScreen() {
 
         <View style={styles.idCardFooter}>
           <Ionicons name="qr-code-outline" size={18} color="#94A3B8" />
-          <Text style={styles.idFooterText}>Terenkripsi Standar Keamanan Data POLRI</Text>
+          <Text style={styles.idFooterText}>Terenkripsi Standar Keamanan Data SIM Online</Text>
         </View>
       </View>
 
@@ -162,7 +162,7 @@ export default function AboutScreen() {
             <Text style={styles.courierInfoText}>
               Ekspedisi Pengiriman:{' '}
               <Text style={{ fontWeight: '700', color: COLORS.primary }}>
-                PT Pos Indonesia (Pengiriman Terenkripsi & Asuransi Resmi POLRI)
+                PT Pos Indonesia (Pengiriman Terenkripsi & Asuransi Resmi)
               </Text>
             </Text>
           </View>
@@ -203,7 +203,7 @@ export default function AboutScreen() {
           onPress={() => setSelectedHelpModal(helpDetails.callCenter)}
         >
           <Ionicons name="call-outline" size={18} color={COLORS.textSecondary} />
-          <Text style={styles.menuText}>Call Center NTMC POLRI (1500669)</Text>
+          <Text style={styles.menuText}>Call Center Support (Simulasi)</Text>
           <Ionicons name="chevron-forward" size={16} color={COLORS.navyMuted} />
         </Pressable>
 
@@ -409,7 +409,7 @@ export default function AboutScreen() {
                       if (Platform.OS === 'web' && typeof window !== 'undefined') {
                         window.open(`tel:${selectedHelpModal.phone}`);
                       } else {
-                        alert(`Menghubungi NTMC POLRI: ${selectedHelpModal.phone}`);
+                        alert(`Menghubungi Call Center: ${selectedHelpModal.phone}`);
                       }
                     }}
                   >
@@ -420,15 +420,15 @@ export default function AboutScreen() {
                   <Pressable
                     style={[styles.actionContactBtn, { backgroundColor: '#16A34A' }]}
                     onPress={() => {
-                      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                        window.open(`https://wa.me/628112115006`);
+                      if (Platform.OS === 'web') {
+                        alert('Simulasi WhatsApp Support: Menghubungi Layanan Bantuan Prototype Dummy (Bukan Nomor Asli)');
                       } else {
-                        alert('Membuka WhatsApp NTMC POLRI...');
+                        Alert.alert('Simulasi WhatsApp', 'Menghubungi Layanan Support Prototype Dummy.');
                       }
                     }}
                   >
                     <Ionicons name="logo-whatsapp" size={16} color="#FFFFFF" />
-                    <Text style={styles.actionContactBtnText}>Chat WhatsApp Official NTMC</Text>
+                    <Text style={styles.actionContactBtnText}>Chat WhatsApp Support (Simulasi)</Text>
                   </Pressable>
                 </View>
               )}

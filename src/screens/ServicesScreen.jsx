@@ -59,7 +59,7 @@ export default function ServicesScreen({ onSelectService }) {
         onPress={() =>
           onSelectService({
             title: 'Pendaftaran SIM Internasional',
-            subtitle: 'Permohonan penerbitan SIM Internasional resmi Korlantas POLRI.',
+            subtitle: 'Permohonan penerbitan SIM Internasional resmi.',
             iconName: 'globe-outline',
           })
         }
@@ -93,7 +93,7 @@ export default function ServicesScreen({ onSelectService }) {
       />
 
       <ServiceCard
-        title="NTMC POLRI (National Traffic Management Center)"
+        title="Pusat Informasi Lalu Lintas & CCTV"
         subtitle="Informasi pantauan arus lalu lintas realtime dan CCTV jalan raya."
         iconName="videocam-outline"
         badge="Segera Hadir"

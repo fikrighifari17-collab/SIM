@@ -18,18 +18,18 @@ export default function LoginScreen({ onLoginSuccess }) {
   // Pre-registered Accounts State (Includes Customer Demo & New Registrations)
   const [registeredAccounts, setRegisteredAccounts] = useState([
     {
-      email: 'budi@gmail.com',
+      email: 'budi@example.com',
       password: 'user123',
-      name: 'Budi Santoso',
+      name: 'Budi Santoso (Dummy)',
       nik: '3174052208900001',
-      phone: '081298765432',
+      phone: '0800-0000-0001',
     },
     {
-      email: 'siti@gmail.com',
+      email: 'siti@example.com',
       password: 'user123',
-      name: 'Siti Rahmawati',
+      name: 'Siti Rahmawati (Dummy)',
       nik: '3175021205950003',
-      phone: '085712345678',
+      phone: '0800-0000-0002',
     },
   ]);
 
@@ -57,13 +57,13 @@ export default function LoginScreen({ onLoginSuccess }) {
 
     // 1. Check Admin Credentials
     if (
-      (cleanEmail === 'admin@jejaksim.polri.go.id' || cleanEmail === 'admin') &&
+      (cleanEmail === 'admin@example.com' || cleanEmail === 'admin@jejak-sim.id' || cleanEmail === 'admin') &&
       passwordInput === 'admin123'
     ) {
       onLoginSuccess({
         role: 'admin',
-        name: 'Administrator Korlantas',
-        email: 'admin@jejaksim.polri.go.id',
+        name: 'Administrator Panel (Dummy)',
+        email: 'admin@example.com',
       });
       return;
     }
@@ -87,7 +87,7 @@ export default function LoginScreen({ onLoginSuccess }) {
 
     // 3. Fallback invalid credentials
     const msg =
-      'Gmail atau Password salah.\n\nGunakan Credential Demo:\n• Customer: budi@gmail.com | user123\n• Admin: admin@jejaksim.polri.go.id | admin123\n\natau klik "Daftar Akun Baru".';
+      'Email atau Password salah.\n\nGunakan Credential Demo Prototype:\n• Customer: budi@example.com | user123\n• Admin: admin@example.com | admin123\n\natau klik "Daftar Akun Baru".';
     if (Platform.OS === 'web') alert(msg);
     else Alert.alert('Login Gagal', msg);
   };
@@ -187,7 +187,7 @@ export default function LoginScreen({ onLoginSuccess }) {
             <View style={styles.contactFooter}>
               <Ionicons name="headset-outline" size={16} color="#94A3B8" />
               <Text style={styles.contactText}>
-                Layanan Bantuan 24 Jam: Call Center 1500669 | info@jejaksim.polri.go.id
+                Layanan Bantuan 24 Jam: Call Center 0800-1234-5678 | info@jejak-sim.id
               </Text>
             </View>
           </View>
@@ -210,19 +210,19 @@ export default function LoginScreen({ onLoginSuccess }) {
                   <View style={styles.credTextCol}>
                     <Text style={styles.credTitle}>Informasi Credential Login Demo:</Text>
                     <Text style={styles.credText}>
-                      👤 Customer: <Text style={styles.credBold}>budi@gmail.com</Text> | Pass: <Text style={styles.credBold}>user123</Text>
+                      Customer: <Text style={styles.credBold}>budi@example.com</Text> | Pass: <Text style={styles.credBold}>user123</Text>
                     </Text>
                     <Text style={styles.credText}>
-                      🛡️ Admin: <Text style={styles.credBold}>admin@jejaksim.polri.go.id</Text> | Pass: <Text style={styles.credBold}>admin123</Text>
+                      Admin: <Text style={styles.credBold}>admin@example.com</Text> | Pass: <Text style={styles.credBold}>admin123</Text>
                     </Text>
                   </View>
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Alamat Gmail / Email / Username</Text>
+                  <Text style={styles.label}>Alamat Email / Username</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Masukkan email (contoh: budi@gmail.com atau admin)..."
+                    placeholder="Masukkan email (contoh: budi@example.com atau admin)..."
                     value={emailInput}
                     onChangeText={setEmailInput}
                     keyboardType="email-address"
@@ -256,7 +256,7 @@ export default function LoginScreen({ onLoginSuccess }) {
                 <View style={styles.switchAuthRow}>
                   <Text style={styles.switchAuthText}>Belum memiliki akun?</Text>
                   <Pressable onPress={() => setAuthView('register')}>
-                    <Text style={styles.switchAuthLink}>Daftar Akun Baru ➔</Text>
+                    <Text style={styles.switchAuthLink}>Daftar Akun Baru</Text>
                   </Pressable>
                 </View>
               </View>
@@ -265,7 +265,7 @@ export default function LoginScreen({ onLoginSuccess }) {
               <View style={styles.formBody}>
                 <Text style={styles.formTitle}>Daftar Akun Baru JEJAK SIM</Text>
                 <Text style={styles.formSubtitle}>
-                  Lengkapi data identitas KTP dan Gmail Anda untuk mendaftarkan akun pemohon SIM baru.
+                  Lengkapi data identitas KTP dan Email Anda untuk mendaftarkan akun pemohon SIM baru.
                 </Text>
 
                 <View style={styles.inputGroup}>
@@ -291,10 +291,10 @@ export default function LoginScreen({ onLoginSuccess }) {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Nomor Handphone (WhatsApp Active)</Text>
+                  <Text style={styles.label}>Nomor Handphone (Aktif)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="0812xxxxxxxx"
+                    placeholder="0800xxxxxxxx"
                     value={regPhone}
                     onChangeText={setRegPhone}
                     keyboardType="phone-pad"
@@ -302,10 +302,10 @@ export default function LoginScreen({ onLoginSuccess }) {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Alamat Gmail / Email</Text>
+                  <Text style={styles.label}>Alamat Email Active</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="nama@gmail.com"
+                    placeholder="nama@example.com"
                     value={regEmail}
                     onChangeText={setRegEmail}
                     keyboardType="email-address"
@@ -339,7 +339,7 @@ export default function LoginScreen({ onLoginSuccess }) {
                 <View style={styles.switchAuthRow}>
                   <Text style={styles.switchAuthText}>Sudah memiliki akun terdaftar?</Text>
                   <Pressable onPress={() => setAuthView('login')}>
-                    <Text style={styles.switchAuthLink}>Kembali ke Login ➔</Text>
+                    <Text style={styles.switchAuthLink}>Kembali ke Login</Text>
                   </Pressable>
                 </View>
               </View>

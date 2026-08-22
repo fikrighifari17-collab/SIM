@@ -26,7 +26,7 @@ export default function FAQScreen() {
     },
     {
       q: 'Bagaimana cara mendapat bantuan jika terjadi kendala teknis?',
-      a: 'Anda dapat mengklik menu Akun / Bantuan di aplikasi, atau menghubungi Customer Care Korlantas POLRI melalui email resmi info@digitalkorlantas.polri.go.id atau Call Center NTMC POLRI 1500669.',
+      a: 'Anda dapat mengklik menu Akun / Bantuan di aplikasi, atau menghubungi Customer Care melalui email info@jejak-sim.id atau Call Center Simulasi 0800-1234-5678 / WhatsApp 0812-9999-8888.',
     },
     {
       q: 'Apakah SIM fisik masih tetap dikirimkan ke rumah?',

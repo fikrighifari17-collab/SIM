@@ -102,10 +102,10 @@ export default function ServiceModal({ visible, onClose, service }) {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Nomor Handphone (WhatsApp)</Text>
+                  <Text style={styles.label}>Nomor Handphone (Aktif)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="0812xxxxxxxx"
+                    placeholder="0800xxxxxxxx"
                     value={noHp}
                     onChangeText={setNoHp}
                     keyboardType="phone-pad"

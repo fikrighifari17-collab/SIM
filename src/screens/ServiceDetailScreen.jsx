@@ -53,6 +53,18 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
   const [satpasRegionFilter, setSatpasRegionFilter] = useState('Semua');
   const [submitted, setSubmitted] = useState(false);
 
+  // Delivery & Pickup Method States (Screenshot 2 & 3)
+  const [metodePengambilan, setMetodePengambilan] = useState('kirim'); // 'satpas' | 'kirim'
+  const [alamatPengiriman, setAlamatPengiriman] = useState({
+    alamatJalan: 'Jl. Jend. Sudirman No. 45, RT 003/RW 005',
+    kelurahan: 'Kel. Gelora',
+    kecamatan: 'Kec. Tanah Abang',
+    kotaKab: 'Jakarta Pusat',
+    provinsi: 'DKI Jakarta',
+    kodePos: '10270',
+    zonaOngkir: 30000,
+  });
+
   const REGION_FILTERS = [
     { id: 'Semua', label: 'Semua Wilayah' },
     { id: 'Metro', label: 'DKI & Metro Jaya' },
@@ -66,6 +78,26 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
   const isRenewal = service?.title?.toLowerCase().includes('perpanjangan') || service?.id?.toLowerCase().includes('perpanjangan');
   const [fotoKtp, setFotoKtp] = useState(null);
   const [fotoSimLama, setFotoSimLama] = useState(null);
+
+  // Financial Breakdown Calculation Helper (Screenshot 1)
+  const getFeeBreakdown = () => {
+    let pnbpFee = 120000; // Default SIM A Baru
+    if (jenisSim === 'SIM C' || jenisSim === 'SIM C1') pnbpFee = 100000;
+    if (jenisSim === 'SIM Internasional') pnbpFee = 250000;
+    if (isRenewal) {
+      if (jenisSim === 'SIM C' || jenisSim === 'SIM C1') pnbpFee = 75000;
+      else pnbpFee = 80000;
+    }
+
+    const adminFee = 15000;
+    const pgFee = 5000;
+    const subtotal = pnbpFee + adminFee + pgFee;
+    const ppnFee = Math.round(subtotal * 0.11);
+    const ongkirFee = metodePengambilan === 'kirim' ? alamatPengiriman.zonaOngkir : 0;
+    const totalBayar = subtotal + ppnFee + ongkirFee;
+
+    return { pnbpFee, adminFee, pgFee, subtotal, ppnFee, ongkirFee, totalBayar };
+  };
 
   // Real File Picker for JPG, PNG, and PDF documents
   const pickFile = (onSelect) => {
@@ -120,6 +152,8 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
     return matchesSearch && matchesRegion;
   });
 
+  const fees = getFeeBreakdown();
+
   const handleSubmit = () => {
     if (!nik || !nama || !noHp) {
       if (Platform.OS === 'web') {
@@ -147,6 +181,15 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
       }
       return;
     }
+
+    if (metodePengambilan === 'kirim' && (!alamatPengiriman.alamatJalan || !alamatPengiriman.kotaKab)) {
+      if (Platform.OS === 'web') {
+        alert('Harap lengkapi alamat jalan dan kota/kabupaten untuk pengiriman Pos Indonesia.');
+      } else {
+        Alert.alert('Perhatian', 'Harap lengkapi alamat jalan dan kota/kabupaten untuk pengiriman Pos Indonesia.');
+      }
+      return;
+    }
     
     const newSubmission = {
       id: Date.now().toString(),
@@ -154,12 +197,18 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
       nama,
       nik,
       noHp,
-      email: email || 'pemohon@gmail.com',
+      email: email || 'pemohon@example.com',
       jenisSim,
       satpas,
       serviceTitle: service.title,
       fotoKtpName: fotoKtp ? fotoKtp.name : 'E-KTP_317405220890_VERIFIED.jpg',
       fotoSimLamaName: isRenewal ? (fotoSimLama ? fotoSimLama.name : 'SIM_LAMA_VERIFIED.jpg') : null,
+      metodePengambilan,
+      alamatPengiriman: metodePengambilan === 'kirim' ? alamatPengiriman : null,
+      feeBreakdown: fees,
+      totalBayar: fees.totalBayar,
+      trackingStatus: 'Proses Verifikasi Dokumen',
+      posResiNumber: `POS-SIM-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       date: new Date().toLocaleDateString('id-ID'),
       status: 'Pending',
     };
@@ -213,74 +262,8 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
 
       {!submitted ? (
         <View style={styles.mainGrid}>
-          {/* Left Column: Requirements & Guide */}
+          {/* Left Column: Full Page Application Form */}
           <View style={styles.leftCol}>
-            <View style={styles.infoCard}>
-              <View style={styles.infoCardHeader}>
-                <Ionicons name="document-attach-outline" size={20} color={COLORS.primary} />
-                <Text style={styles.infoCardTitle}>Persyaratan Dokumen Digital</Text>
-              </View>
-              <View style={styles.infoList}>
-                <Text style={styles.infoItem}>• E-KTP (Kartu Tanda Penduduk Elektronik) aktif</Text>
-                <Text style={styles.infoItem}>• Kartu SIM lama yang masih berlaku (khusus perpanjangan)</Text>
-                <Text style={styles.infoItem}>• Pas foto digital terbaru latar belakang biru (4x6)</Text>
-                <Text style={styles.infoItem}>• Tanda tangan di atas kertas putih polos (foto/scan)</Text>
-                <Text style={styles.infoItem}>• Hasil tes kesehatan fisik E-Rikkes & tes psikologi EPPsi</Text>
-              </View>
-            </View>
-
-            <View style={styles.infoCard}>
-              <View style={styles.infoCardHeader}>
-                <Ionicons name="git-network-outline" size={20} color={COLORS.primary} />
-                <Text style={styles.infoCardTitle}>Tahapan Pengajuan Online</Text>
-              </View>
-              <View style={styles.stepsList}>
-                <View style={styles.stepItem}>
-                  <Text style={styles.stepBadge}>1</Text>
-                  <Text style={styles.stepText}>Pengisian formulir data diri & NIK E-KTP</Text>
-                </View>
-                <View style={styles.stepItem}>
-                  <Text style={styles.stepBadge}>2</Text>
-                  <Text style={styles.stepText}>Verifikasi tes kesehatan E-Rikkes & EPPsi</Text>
-                </View>
-                <View style={styles.stepItem}>
-                  <Text style={styles.stepBadge}>3</Text>
-                  <Text style={styles.stepText}>Pilihan SATPAS penerbit & metode pengiriman</Text>
-                </View>
-                <View style={styles.stepItem}>
-                  <Text style={styles.stepBadge}>4</Text>
-                  <Text style={styles.stepText}>Pembayaran PNBP & pencetakan SIM fisik</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Official Payment Flow Explanation Card */}
-            <View style={styles.infoCard}>
-              <View style={styles.infoCardHeader}>
-                <Ionicons name="card-outline" size={20} color={COLORS.primary} />
-                <Text style={styles.infoCardTitle}>Kapan Pembayaran Dilakukan?</Text>
-              </View>
-              <Text style={styles.infoDescText}>
-                Mengikuti alur resmi SIM Presisi, pembayaran PNBP <Text style={{ fontWeight: '700' }}>bukan di awal</Text>, melainkan setelah data & dokumen diverifikasi valid oleh petugas POLRI:
-              </Text>
-              <View style={styles.flowStepsBox}>
-                <Text style={styles.flowStepItem}>1. Isi Data Diri & Upload Dokumen</Text>
-                <Text style={styles.flowStepArrow}>↓</Text>
-                <Text style={styles.flowStepItem}>2. Verifikasi Dokumen oleh Petugas POLRI</Text>
-                <Text style={styles.flowStepArrow}>↓</Text>
-                <Text style={styles.flowStepHighlight}>3. ✅ Pembayaran PNBP (Muncul setelah data lolos verifikasi)</Text>
-                <Text style={styles.flowStepArrow}>↓</Text>
-                <Text style={styles.flowStepItem}>4. Pencetakan & Pengiriman SIM Fisik</Text>
-              </View>
-              <Text style={styles.infoSubNote}>
-                • Menghindari refund jika dokumen tidak valid (NIK salah / foto buram).{'\n'}
-                • Pola ini resmi sesuai standar aplikasi Digital Korlantas POLRI.
-              </Text>
-            </View>
-          </View>
-
-          {/* Right Column: Full Page Application Form */}
-          <View style={styles.rightCol}>
             <View style={styles.formCard}>
               <Text style={styles.formHeaderTitle}>Formulir Pengajuan {service.title}</Text>
               <Text style={styles.formHeaderSubtitle}>
@@ -310,10 +293,10 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nomor Handphone (WhatsApp Active)</Text>
+                <Text style={styles.label}>Nomor Handphone (Aktif)</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="0812xxxxxxxx"
+                  placeholder="0800xxxxxxxx"
                   value={noHp}
                   onChangeText={setNoHp}
                   keyboardType="phone-pad"
@@ -324,7 +307,7 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
                 <Text style={styles.label}>Alamat Email Active</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="email@domain.com"
+                  placeholder="email@example.com"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -465,6 +448,161 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
                 </Pressable>
               </View>
 
+              {/* Pilihan Metode Pengambilan SIM (Screenshot 2 & 3) */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Metode Pengambilan / Penyerahan SIM Fisik</Text>
+                <View style={styles.deliveryRadioRow}>
+                  <Pressable
+                    style={[
+                      styles.deliveryRadioBox,
+                      metodePengambilan === 'satpas' && styles.deliveryRadioBoxActive,
+                    ]}
+                    onPress={() => setMetodePengambilan('satpas')}
+                  >
+                    <Ionicons
+                      name={metodePengambilan === 'satpas' ? 'radio-button-on' : 'radio-button-off'}
+                      size={18}
+                      color={metodePengambilan === 'satpas' ? COLORS.primary : COLORS.textSecondary}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.deliveryRadioTitle, metodePengambilan === 'satpas' && styles.deliveryRadioTitleActive]}>
+                        Ambil Sendiri di SATPAS
+                      </Text>
+                      <Text style={styles.deliveryRadioSubtitle}>Bebas Ongkir (Gratis Rp0)</Text>
+                    </View>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.deliveryRadioBox,
+                      metodePengambilan === 'kirim' && styles.deliveryRadioBoxActive,
+                    ]}
+                    onPress={() => setMetodePengambilan('kirim')}
+                  >
+                    <Ionicons
+                      name={metodePengambilan === 'kirim' ? 'radio-button-on' : 'radio-button-off'}
+                      size={18}
+                      color={metodePengambilan === 'kirim' ? COLORS.primary : COLORS.textSecondary}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.deliveryRadioTitle, metodePengambilan === 'kirim' && styles.deliveryRadioTitleActive]}>
+                        Dikirim ke Rumah (Pos Indonesia)
+                      </Text>
+                      <Text style={styles.deliveryRadioSubtitle}>+ Tarif Kirim Terenkripsi Rp30.000</Text>
+                    </View>
+                  </Pressable>
+                </View>
+              </View>
+
+              {/* Form Alamat Pengiriman jika pilih Kirim ke Rumah */}
+              {metodePengambilan === 'kirim' && (
+                <View style={styles.addressFormBox}>
+                  <View style={styles.addressFormHeader}>
+                    <Ionicons name="car-outline" size={18} color={COLORS.primary} />
+                    <Text style={styles.addressFormHeaderTitle}>Form Konfirmasi Alamat Pengiriman SIM</Text>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.subLabel}>Alamat Jalan, No. Rumah, RT/RW:</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={alamatPengiriman.alamatJalan}
+                      onChangeText={(val) => setAlamatPengiriman({ ...alamatPengiriman, alamatJalan: val })}
+                      placeholder="Jl. Sudirman No. 45..."
+                    />
+                  </View>
+
+                  <View style={styles.twoColsRow}>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                      <Text style={styles.subLabel}>Kelurahan:</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={alamatPengiriman.kelurahan}
+                        onChangeText={(val) => setAlamatPengiriman({ ...alamatPengiriman, kelurahan: val })}
+                      />
+                    </View>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                      <Text style={styles.subLabel}>Kecamatan:</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={alamatPengiriman.kecamatan}
+                        onChangeText={(val) => setAlamatPengiriman({ ...alamatPengiriman, kecamatan: val })}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.twoColsRow}>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                      <Text style={styles.subLabel}>Kota / Kabupaten:</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={alamatPengiriman.kotaKab}
+                        onChangeText={(val) => setAlamatPengiriman({ ...alamatPengiriman, kotaKab: val })}
+                      />
+                    </View>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                      <Text style={styles.subLabel}>Provinsi:</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={alamatPengiriman.provinsi}
+                        onChangeText={(val) => setAlamatPengiriman({ ...alamatPengiriman, provinsi: val })}
+                      />
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Rincian Biaya Transparan Invoice Preview Table (Presisi Gambar 1) */}
+              <View style={styles.invoiceTableCard}>
+                <Text style={styles.invoiceTableTitle}>
+                  Contoh perhitungan ({service.title} - {jenisSim}, biaya PNBP resmi Rp{fees.pnbpFee.toLocaleString('id-ID')}):
+                </Text>
+                
+                <View style={styles.invoiceTableHeader}>
+                  <Text style={[styles.invoiceTh, { flex: 1 }]}>Komponen</Text>
+                  <Text style={[styles.invoiceTh, { flex: 1, textAlign: 'right' }]}>Nilai</Text>
+                </View>
+
+                <View style={styles.invoiceTableRow}>
+                  <Text style={[styles.invoiceTdBold, { flex: 1 }]}>Biaya Layanan (PNBP)</Text>
+                  <Text style={[styles.invoiceTd, { flex: 1, textAlign: 'right' }]}>Rp{fees.pnbpFee.toLocaleString('id-ID')}</Text>
+                </View>
+
+                <View style={styles.invoiceTableRow}>
+                  <Text style={[styles.invoiceTdBold, { flex: 1 }]}>Biaya Admin Platform</Text>
+                  <Text style={[styles.invoiceTd, { flex: 1, textAlign: 'right' }]}>Rp{fees.adminFee.toLocaleString('id-ID')}</Text>
+                </View>
+
+                <View style={styles.invoiceTableRow}>
+                  <Text style={[styles.invoiceTdBold, { flex: 1 }]}>Biaya Payment Gateway</Text>
+                  <Text style={[styles.invoiceTd, { flex: 1, textAlign: 'right' }]}>
+                    Rp{fees.pgFee.toLocaleString('id-ID')} <Text style={{ fontSize: 11, color: COLORS.textSecondary }}>(opsional)</Text>
+                  </Text>
+                </View>
+
+                <View style={[styles.invoiceTableRow, styles.invoiceSubtotalRow]}>
+                  <Text style={[styles.invoiceTdSubtotal, { flex: 1 }]}>Subtotal</Text>
+                  <Text style={[styles.invoiceTdSubtotal, { flex: 1, textAlign: 'right' }]}>Rp{fees.subtotal.toLocaleString('id-ID')}</Text>
+                </View>
+
+                <View style={styles.invoiceTableRow}>
+                  <Text style={[styles.invoiceTdBold, { flex: 1 }]}>PPN 11%</Text>
+                  <Text style={[styles.invoiceTd, { flex: 1, textAlign: 'right' }]}>Rp{fees.ppnFee.toLocaleString('id-ID')}</Text>
+                </View>
+
+                {metodePengambilan === 'kirim' && (
+                  <View style={styles.invoiceTableRow}>
+                    <Text style={[styles.invoiceTdBold, { flex: 1 }]}>Biaya Pengiriman Pos Indonesia</Text>
+                    <Text style={[styles.invoiceTd, { flex: 1, textAlign: 'right' }]}>Rp{fees.ongkirFee.toLocaleString('id-ID')}</Text>
+                  </View>
+                )}
+
+                <View style={[styles.invoiceTableRow, styles.invoiceTotalRow]}>
+                  <Text style={[styles.invoiceTdTotalLabel, { flex: 1 }]}>Total Bayar</Text>
+                  <Text style={[styles.invoiceTdTotalVal, { flex: 1, textAlign: 'right' }]}>Rp{fees.totalBayar.toLocaleString('id-ID')}</Text>
+                </View>
+              </View>
+
               <Pressable
                 style={({ pressed }) => [
                   styles.submitBtn,
@@ -475,6 +613,72 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
                 <Text style={styles.submitBtnText}>Kirim Pengajuan SIM Sekarang</Text>
                 <Ionicons name="checkmark-done" size={18} color="#FFFFFF" />
               </Pressable>
+            </View>
+          </View>
+
+          {/* Right Column: Requirements & Guide */}
+          <View style={styles.rightCol}>
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardHeader}>
+                <Ionicons name="document-attach-outline" size={20} color={COLORS.primary} />
+                <Text style={styles.infoCardTitle}>Persyaratan Dokumen Digital</Text>
+              </View>
+              <View style={styles.infoList}>
+                <Text style={styles.infoItem}>• E-KTP (Kartu Tanda Penduduk Elektronik) aktif</Text>
+                <Text style={styles.infoItem}>• Kartu SIM lama yang masih berlaku (khusus perpanjangan)</Text>
+                <Text style={styles.infoItem}>• Pas foto digital terbaru latar belakang biru (4x6)</Text>
+                <Text style={styles.infoItem}>• Tanda tangan di atas kertas putih polos (foto/scan)</Text>
+                <Text style={styles.infoItem}>• Hasil tes kesehatan fisik E-Rikkes & tes psikologi EPPsi</Text>
+              </View>
+            </View>
+
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardHeader}>
+                <Ionicons name="git-network-outline" size={20} color={COLORS.primary} />
+                <Text style={styles.infoCardTitle}>Tahapan Pengajuan Online</Text>
+              </View>
+              <View style={styles.stepsList}>
+                <View style={styles.stepItem}>
+                  <Text style={styles.stepBadge}>1</Text>
+                  <Text style={styles.stepText}>Pengisian formulir data diri & NIK E-KTP</Text>
+                </View>
+                <View style={styles.stepItem}>
+                  <Text style={styles.stepBadge}>2</Text>
+                  <Text style={styles.stepText}>Verifikasi tes kesehatan E-Rikkes & EPPsi</Text>
+                </View>
+                <View style={styles.stepItem}>
+                  <Text style={styles.stepBadge}>3</Text>
+                  <Text style={styles.stepText}>Pilihan SATPAS penerbit & metode pengiriman</Text>
+                </View>
+                <View style={styles.stepItem}>
+                  <Text style={styles.stepBadge}>4</Text>
+                  <Text style={styles.stepText}>Pembayaran PNBP & pencetakan SIM fisik</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Official Payment Flow Explanation Card */}
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardHeader}>
+                <Ionicons name="card-outline" size={20} color={COLORS.primary} />
+                <Text style={styles.infoCardTitle}>Kapan Pembayaran Dilakukan?</Text>
+              </View>
+              <Text style={styles.infoDescText}>
+                Mengikuti alur resmi SIM Presisi, pembayaran PNBP <Text style={{ fontWeight: '700' }}>bukan di awal</Text>, melainkan setelah data & dokumen diverifikasi valid oleh petugas:
+              </Text>
+              <View style={styles.flowStepsBox}>
+                <Text style={styles.flowStepItem}>1. Isi Data Diri & Upload Dokumen</Text>
+                <Text style={styles.flowStepArrow}>↓</Text>
+                <Text style={styles.flowStepItem}>2. Verifikasi Dokumen oleh Petugas Verifikator</Text>
+                <Text style={styles.flowStepArrow}>↓</Text>
+                <Text style={styles.flowStepHighlight}>3. Pembayaran PNBP (Muncul setelah data lolos verifikasi)</Text>
+                <Text style={styles.flowStepArrow}>↓</Text>
+                <Text style={styles.flowStepItem}>4. Pencetakan & Pengiriman SIM Fisik</Text>
+              </View>
+              <Text style={styles.infoSubNote}>
+                • Menghindari refund jika dokumen tidak valid (NIK salah / foto buram).{'\n'}
+                • Pola ini resmi sesuai standar aplikasi Digital SIM Online.
+              </Text>
             </View>
           </View>
         </View>
@@ -514,7 +718,7 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
             <View style={styles.paymentNoticeBox}>
               <Ionicons name="information-circle-outline" size={20} color="#D97706" />
               <Text style={styles.paymentNoticeText}>
-                <Text style={{ fontWeight: '700' }}>Catatan Resmi Alur SIM:</Text> Pembayaran PNBP dilakukan <Text style={{ fontWeight: '700' }}>setelah data & dokumen diverifikasi valid</Text> oleh Petugas POLRI. Tombol <Text style={{ fontWeight: '700' }}>"Bayar Online Sekarang"</Text> akan otomatis muncul di akun Anda begitu permohonan disetujui.
+                <Text style={{ fontWeight: '700' }}>Catatan Resmi Alur SIM:</Text> Pembayaran PNBP dilakukan <Text style={{ fontWeight: '700' }}>setelah data & dokumen diverifikasi valid</Text> oleh Petugas Verifikator. Tombol <Text style={{ fontWeight: '700' }}>"Bayar Online Sekarang"</Text> akan otomatis muncul di akun Anda begitu permohonan disetujui.
               </Text>
             </View>
           </View>
@@ -1144,5 +1348,141 @@ const styles = StyleSheet.create({
   satpasRegionPillTextActive: {
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+  deliveryRadioRow: {
+    gap: 10,
+    marginTop: 6,
+  },
+  deliveryRadioBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    cursor: Platform.OS === 'web' ? 'pointer' : 'auto',
+  },
+  deliveryRadioBoxActive: {
+    backgroundColor: '#F0F9FF',
+    borderColor: COLORS.primary,
+  },
+  deliveryRadioTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  deliveryRadioTitleActive: {
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  deliveryRadioSubtitle: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  addressFormBox: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 14,
+    marginBottom: 16,
+  },
+  addressFormHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  addressFormHeaderTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  twoColsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  subLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+  },
+  invoiceTableCard: {
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: '#374151',
+    padding: 16,
+    marginBottom: 20,
+  },
+  invoiceTableTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#F9FAFB',
+    marginBottom: 14,
+  },
+  invoiceTableHeader: {
+    flexDirection: 'row',
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#374151',
+    marginBottom: 8,
+  },
+  invoiceTh: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9CA3AF',
+  },
+  invoiceTableRow: {
+    flexDirection: 'row',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F2937',
+    alignItems: 'center',
+  },
+  invoiceTdBold: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#F3F4F6',
+  },
+  invoiceTd: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#F3F4F6',
+  },
+  invoiceTdDesc: {
+    fontSize: 11,
+    color: '#9CA3AF',
+  },
+  invoiceSubtotalRow: {
+    backgroundColor: '#1F2937',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    marginVertical: 4,
+  },
+  invoiceTdSubtotal: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#F9FAFB',
+  },
+  invoiceTotalRow: {
+    borderTopWidth: 2,
+    borderTopColor: '#3B82F6',
+    paddingTop: 10,
+    marginTop: 6,
+  },
+  invoiceTdTotalLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#60A5FA',
+  },
+  invoiceTdTotalVal: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#60A5FA',
   },
 });

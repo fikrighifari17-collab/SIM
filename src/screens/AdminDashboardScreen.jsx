@@ -17,12 +17,51 @@ export default function AdminDashboardScreen({
   onUpdateStatus,
   onLogout,
 }) {
-  const [adminSubTab, setAdminSubTab] = useState('verifikasi'); // 'verifikasi' | 'pembayaran'
+  const [adminSubTab, setAdminSubTab] = useState('verifikasi'); // 'verifikasi' | 'pembayaran' | 'pengiriman' | 'tarif' | 'laporan' | 'alamat'
   const [searchQuery, setSearchQuery] = useState('');
   const [simFilter, setSimFilter] = useState('Semua');
   const [statusFilter, setStatusFilter] = useState('Semua');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('Semua');
   const [selectedApplicant, setSelectedApplicant] = useState(null);
+
+  // Admin Dynamic Settings & Shipping Manager States (Screenshot 3)
+  const [tariffSettings, setTariffSettings] = useState({
+    pnbpSimA: '120000',
+    pnbpSimC: '100000',
+    pnbpSimInt: '250000',
+    adminFee: '15000',
+    pgFee: '5000',
+    ppnRate: '11',
+  });
+
+  const [shippingZones, setShippingZones] = useState([
+    { id: 1, name: 'Zona 1 (DKI, Jabar, Banten)', fee: '20000' },
+    { id: 2, name: 'Zona 2 (Jateng, Jatim, DIY, Bali)', fee: '30000' },
+    { id: 3, name: 'Zona 3 (Sumatera, Kalimantan, Sulawesi)', fee: '45000' },
+    { id: 4, name: 'Zona 4 (Papua, Maluku, NTT, NTB)', fee: '60000' },
+  ]);
+
+  const [resiInputs, setResiInputs] = useState({});
+  const [shippingStatuses, setShippingStatuses] = useState({});
+
+  const [problematicAddresses, setProblematicAddresses] = useState([
+    {
+      id: 'ADDR-101',
+      nama: 'Budi Santoso (Dummy)',
+      resiId: 'SIM-2026-0822-889',
+      noHp: '0800-0000-0003',
+      issue: 'RT/RW & Nomor Rumah belum diisi lengkap (Kurir Pos gagal antar)',
+      status: 'Perlu Follow Up',
+    },
+    {
+      id: 'ADDR-102',
+      nama: 'Siti Aminah (Dummy)',
+      resiId: 'SIM-2026-0822-441',
+      noHp: '0800-0000-0004',
+      issue: 'Kode Pos 10270 tidak cocok dengan kelurahan yang dipilih',
+      status: 'Perlu Follow Up',
+    },
+  ]);
   
   // Toast / Action notification modal state
   const [noticeModal, setNoticeModal] = useState({
@@ -38,6 +77,57 @@ export default function AdminDashboardScreen({
     action: '',
     reason: '',
   });
+
+  const handleExportCSV = () => {
+    let csvContent = 'data:text/csv;charset=utf-8,';
+    csvContent += 'No,Resi Registrasi,Nama Pemohon,NIK,Jenis Layanan,SATPAS,Biaya Layanan (PNBP),Admin Platform,Payment Gateway,Subtotal,PPN 11%,Ongkir Pos,Total Bayar,Status Pembayaran,Tanggal\n';
+
+    submissions.forEach((item, idx) => {
+      const pnbp = parseInt(tariffSettings.pnbpSimA, 10) || 120000;
+      const admin = parseInt(tariffSettings.adminFee, 10) || 15000;
+      const pg = parseInt(tariffSettings.pgFee, 10) || 5000;
+      const subtotal = pnbp + admin + pg;
+      const ppn = Math.round(subtotal * (parseFloat(tariffSettings.ppnRate) / 100 || 0.11));
+      const ongkir = 30000;
+      const total = subtotal + ppn + ongkir;
+
+      const row = [
+        idx + 1,
+        `"${item.resiId}"`,
+        `"${item.nama}"`,
+        `"${item.nik}"`,
+        `"${item.jenisSim || 'SIM A'}"`,
+        `"${item.satpas}"`,
+        pnbp,
+        admin,
+        pg,
+        subtotal,
+        ppn,
+        ongkir,
+        total,
+        `"${item.status}"`,
+        `"${item.date || '2026-08-22'}"`,
+      ].join(',');
+      csvContent += row + '\n';
+    });
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `JEJAK_SIM_Laporan_Keuangan_2026_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      setNoticeModal({
+        visible: true,
+        title: 'Export Laporan Keuangan',
+        message: 'Laporan Keuangan Format Excel (.csv) berhasil di-generate dan diunduh.',
+        icon: 'document-text',
+      });
+    }
+  };
 
   // Compute Statistics
   const totalCount = submissions.length;
@@ -136,7 +226,7 @@ export default function AdminDashboardScreen({
         <View style={styles.adminTitleCol}>
           <View style={styles.adminBadgeRow}>
             <View style={styles.adminBadge}>
-              <Text style={styles.adminBadgeText}>PANEL VERIFIKATOR POLRI</Text>
+              <Text style={styles.adminBadgeText}>PANEL VERIFIKATOR SIM ONLINE</Text>
             </View>
             <Text style={styles.adminHeaderSub}>Aplikasi JEJAK SIM v2.4</Text>
           </View>
@@ -155,8 +245,8 @@ export default function AdminDashboardScreen({
         </Pressable>
       </View>
 
-      {/* Main Admin Tab Switcher */}
-      <View style={styles.adminTabRow}>
+      {/* Main Admin Tab Switcher (Screenshot 3 Requirements) */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.adminTabScrollRow}>
         <Pressable
           style={[
             styles.adminTabBtn,
@@ -175,7 +265,7 @@ export default function AdminDashboardScreen({
               adminSubTab === 'verifikasi' && styles.adminTabBtnTextActive,
             ]}
           >
-            Verifikasi Berkas SIM ({submissions.length})
+            Verifikasi Berkas ({submissions.length})
           </Text>
         </Pressable>
 
@@ -197,10 +287,98 @@ export default function AdminDashboardScreen({
               adminSubTab === 'pembayaran' && styles.adminTabBtnTextActive,
             ]}
           >
-            Rekap Status Pembayaran ({submissions.length})
+            Rekap Pembayaran ({submissions.length})
           </Text>
         </Pressable>
-      </View>
+
+        <Pressable
+          style={[
+            styles.adminTabBtn,
+            adminSubTab === 'pengiriman' && styles.adminTabBtnActive,
+          ]}
+          onPress={() => setAdminSubTab('pengiriman')}
+        >
+          <Ionicons
+            name="car-outline"
+            size={16}
+            color={adminSubTab === 'pengiriman' ? '#FFFFFF' : COLORS.textSecondary}
+          />
+          <Text
+            style={[
+              styles.adminTabBtnText,
+              adminSubTab === 'pengiriman' && styles.adminTabBtnTextActive,
+            ]}
+          >
+            Kelola Pengiriman & Resi
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[
+            styles.adminTabBtn,
+            adminSubTab === 'tarif' && styles.adminTabBtnActive,
+          ]}
+          onPress={() => setAdminSubTab('tarif')}
+        >
+          <Ionicons
+            name="settings-outline"
+            size={16}
+            color={adminSubTab === 'tarif' ? '#FFFFFF' : COLORS.textSecondary}
+          />
+          <Text
+            style={[
+              styles.adminTabBtnText,
+              adminSubTab === 'tarif' && styles.adminTabBtnTextActive,
+            ]}
+          >
+            Pengaturan Tarif & Ongkir
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[
+            styles.adminTabBtn,
+            adminSubTab === 'laporan' && styles.adminTabBtnActive,
+          ]}
+          onPress={() => setAdminSubTab('laporan')}
+        >
+          <Ionicons
+            name="bar-chart-outline"
+            size={16}
+            color={adminSubTab === 'laporan' ? '#FFFFFF' : COLORS.textSecondary}
+          />
+          <Text
+            style={[
+              styles.adminTabBtnText,
+              adminSubTab === 'laporan' && styles.adminTabBtnTextActive,
+            ]}
+          >
+            Laporan Keuangan & Export
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[
+            styles.adminTabBtn,
+            adminSubTab === 'alamat' && styles.adminTabBtnActive,
+          ]}
+          onPress={() => setAdminSubTab('alamat')}
+        >
+          <Ionicons
+            name="warning-outline"
+            size={16}
+            color={adminSubTab === 'alamat' ? '#FFFFFF' : COLORS.textSecondary}
+          />
+          <Text
+            style={[
+              styles.adminTabBtnText,
+              adminSubTab === 'alamat' && styles.adminTabBtnTextActive,
+            ]}
+          >
+            Alamat Bermasalah ({problematicAddresses.length})
+          </Text>
+        </Pressable>
+      </ScrollView>
 
       {/* QUICK METRICS CARDS */}
       <View style={styles.statsGrid}>
@@ -425,9 +603,9 @@ export default function AdminDashboardScreen({
               <View style={styles.filterPillsRow}>
                 {[
                   { id: 'Semua', label: 'Semua' },
-                  { id: 'Lunas', label: 'Lunas 🟢' },
-                  { id: 'Pending', label: 'Pending 🟡' },
-                  { id: 'Gagal', label: 'Gagal / Expired 🔴' },
+                  { id: 'Lunas', label: 'Lunas' },
+                  { id: 'Pending', label: 'Pending' },
+                  { id: 'Gagal', label: 'Gagal / Expired' },
                 ].map((pPill) => {
                   const isActive = paymentStatusFilter === pPill.id;
                   return (
@@ -527,6 +705,332 @@ export default function AdminDashboardScreen({
                 <Text style={styles.emptyDarkText}>Tidak ada rekap pembayaran yang cocok.</Text>
               </View>
             )}
+          </View>
+        </View>
+      )}
+
+      {/* VIEW 3: KELOLA PENGIRIMAN & INPUT RESI POS INDONESIA (Screenshot 3) */}
+      {adminSubTab === 'pengiriman' && (
+        <View style={styles.paymentSectionContainer}>
+          <View style={styles.tableSectionHeader}>
+            <View style={styles.paymentHeaderTitleRow}>
+              <Ionicons name="car-outline" size={20} color={COLORS.primary} />
+              <Text style={styles.tableSectionTitle}>MANAJEMEN PENGIRIMAN & INPUT RESI POS INDONESIA</Text>
+            </View>
+          </View>
+
+          <View style={styles.adminCardBox}>
+            {submissions.filter(s => s.status === 'Lunas' || s.status === 'Disetujui & Cetak' || s.status === 'Disetujui').length > 0 ? (
+              submissions.filter(s => s.status === 'Lunas' || s.status === 'Disetujui & Cetak' || s.status === 'Disetujui').map((item) => {
+                const currentResi = resiInputs[item.id] !== undefined ? resiInputs[item.id] : (item.posResiNumber || 'POS-SIM-2026-9912');
+                const currentStatus = shippingStatuses[item.id] || item.trackingStatus || 'Diserahkan ke Kurir Pos';
+
+                return (
+                  <View key={item.id} style={styles.shippingItemRow}>
+                    <View style={{ flex: 2 }}>
+                      <Text style={styles.shippingApplicantName}>{item.nama}</Text>
+                      <Text style={styles.shippingSubText}>Resi App: {item.resiId} • Layanan: {item.jenisSim || 'SIM A'}</Text>
+                      <Text style={styles.shippingSubText}>SATPAS: {item.satpas}</Text>
+                      <Text style={styles.shippingAddressText}>
+                        Alamat Kirim: {item.alamatPengiriman ? `${item.alamatPengiriman.alamatJalan}, ${item.alamatPengiriman.kotaKab}, ${item.alamatPengiriman.provinsi} ${item.alamatPengiriman.kodePos}` : 'Jl. Sudirman No. 45, Jakarta Pusat'}
+                      </Text>
+                    </View>
+
+                    <View style={{ flex: 1.8, gap: 6 }}>
+                      <Text style={styles.adminInputLabel}>No. Resi Pos Indonesia:</Text>
+                      <TextInput
+                        style={styles.adminTextInput}
+                        value={currentResi}
+                        onChangeText={(val) => setResiInputs({ ...resiInputs, [item.id]: val })}
+                        placeholder="POS-SIM-2026-XXXX"
+                      />
+
+                      <Text style={styles.adminInputLabel}>Status Pengiriman Kurir:</Text>
+                      <View style={styles.shippingStatusPills}>
+                        {['Diproses di SATPAS', 'Diserahkan ke Kurir Pos', 'Dalam Pengiriman', 'Diterima Pemohon'].map((st) => (
+                          <Pressable
+                            key={st}
+                            style={[
+                              styles.statusPillBtn,
+                              currentStatus === st && styles.statusPillBtnActive,
+                            ]}
+                            onPress={() => setShippingStatuses({ ...shippingStatuses, [item.id]: st })}
+                          >
+                            <Text style={[styles.statusPillBtnText, currentStatus === st && styles.statusPillBtnTextActive]}>
+                              {st}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+
+                      <Pressable
+                        style={styles.saveResiBtn}
+                        onPress={() => {
+                          setNoticeModal({
+                            visible: true,
+                            title: 'Resi & Status Pengiriman Disimpan',
+                            message: `Nomor Resi Pos ${currentResi} & status "${currentStatus}" berhasil diperbarui untuk ${item.nama}. Pemohon dapat melacak realtime di aplikasi.`,
+                            icon: 'checkmark-circle',
+                          });
+                        }}
+                      >
+                        <Ionicons name="save-outline" size={14} color="#FFFFFF" />
+                        <Text style={styles.saveResiBtnText}>Simpan Resi Pos</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })
+            ) : (
+              <View style={styles.emptyDarkRow}>
+                <Text style={styles.emptyDarkText}>Belum ada permohonan SIM lunas yang siap dikirim.</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* VIEW 4: PENGATURAN TARIF PNBP, ADMIN, PG, PPN & ONGKIR PER ZONA (Screenshot 3) */}
+      {adminSubTab === 'tarif' && (
+        <View style={styles.paymentSectionContainer}>
+          <View style={styles.tableSectionHeader}>
+            <View style={styles.paymentHeaderTitleRow}>
+              <Ionicons name="settings-outline" size={20} color={COLORS.primary} />
+              <Text style={styles.tableSectionTitle}>PENGATURAN TARIF & BIAYA SISTEM (DYNAMIC CONFIG)</Text>
+            </View>
+          </View>
+
+          <View style={styles.adminTwoGridRow}>
+            {/* Left: Component Pricing Settings */}
+            <View style={[styles.adminCardBox, { flex: 1 }]}>
+              <Text style={styles.adminCardTitle}>Pengaturan Tarif Resmi PNBP & Biaya Layanan</Text>
+              
+              <View style={styles.inputGroupMargin}>
+                <Text style={styles.adminInputLabel}>PNBP SIM A (Mobil Baru):</Text>
+                <TextInput
+                  style={styles.adminTextInput}
+                  value={tariffSettings.pnbpSimA}
+                  onChangeText={(val) => setTariffSettings({ ...tariffSettings, pnbpSimA: val })}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputGroupMargin}>
+                <Text style={styles.adminInputLabel}>PNBP SIM C / C1 (Motor Baru):</Text>
+                <TextInput
+                  style={styles.adminTextInput}
+                  value={tariffSettings.pnbpSimC}
+                  onChangeText={(val) => setTariffSettings({ ...tariffSettings, pnbpSimC: val })}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputGroupMargin}>
+                <Text style={styles.adminInputLabel}>PNBP SIM Internasional:</Text>
+                <TextInput
+                  style={styles.adminTextInput}
+                  value={tariffSettings.pnbpSimInt}
+                  onChangeText={(val) => setTariffSettings({ ...tariffSettings, pnbpSimInt: val })}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputGroupMargin}>
+                <Text style={styles.adminInputLabel}>Biaya Admin Platform (Convenience Fee):</Text>
+                <TextInput
+                  style={styles.adminTextInput}
+                  value={tariffSettings.adminFee}
+                  onChangeText={(val) => setTariffSettings({ ...tariffSettings, adminFee: val })}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputGroupMargin}>
+                <Text style={styles.adminInputLabel}>Biaya Payment Gateway (Opsional PG Fee):</Text>
+                <TextInput
+                  style={styles.adminTextInput}
+                  value={tariffSettings.pgFee}
+                  onChangeText={(val) => setTariffSettings({ ...tariffSettings, pgFee: val })}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputGroupMargin}>
+                <Text style={styles.adminInputLabel}>Tarif PPN (% Persen):</Text>
+                <TextInput
+                  style={styles.adminTextInput}
+                  value={tariffSettings.ppnRate}
+                  onChangeText={(val) => setTariffSettings({ ...tariffSettings, ppnRate: val })}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            {/* Right: Shipping Rates per Zone */}
+            <View style={[styles.adminCardBox, { flex: 1 }]}>
+              <Text style={styles.adminCardTitle}>Pengaturan Ongkos Kirim Pos Indonesia per Zona</Text>
+
+              {shippingZones.map((zone, index) => (
+                <View key={zone.id} style={styles.zoneRowInput}>
+                  <Text style={styles.zoneNameText}>{zone.name}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>Rp</Text>
+                    <TextInput
+                      style={[styles.adminTextInput, { width: 110 }]}
+                      value={zone.fee}
+                      onChangeText={(val) => {
+                        const updated = [...shippingZones];
+                        updated[index].fee = val;
+                        setShippingZones(updated);
+                      }}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+              ))}
+
+              <Pressable
+                style={[styles.saveResiBtn, { marginTop: 20, paddingVertical: 12 }]}
+                onPress={() => {
+                  setNoticeModal({
+                    visible: true,
+                    title: 'Pengaturan Tarif Berhasil Disimpan',
+                    message: 'Konfigurasi tarif PNBP, Biaya Admin Rp15.000, Payment Gateway Rp5.000, PPN 11%, dan Ongkir per Zona berhasil diperbarui.',
+                    icon: 'checkmark-circle',
+                  });
+                }}
+              >
+                <Ionicons name="save" size={16} color="#FFFFFF" />
+                <Text style={styles.saveResiBtnText}>SIMPAN SEMUA PERUBAHAN TARIF</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* VIEW 5: LAPORAN KEUANGAN & EXPORT EXCEL (.CSV) (Screenshot 3) */}
+      {adminSubTab === 'laporan' && (
+        <View style={styles.paymentSectionContainer}>
+          <View style={styles.tableSectionHeader}>
+            <View style={styles.paymentHeaderTitleRow}>
+              <Ionicons name="bar-chart-outline" size={20} color={COLORS.primary} />
+              <Text style={styles.tableSectionTitle}>REKAP LAPORAN KEUANGAN PNBP, ADMIN & PPN</Text>
+            </View>
+
+            <Pressable style={styles.exportExcelBtn} onPress={handleExportCSV}>
+              <Ionicons name="download-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.exportExcelBtnText}>EXPORT LAPORAN EXCEL (.CSV)</Text>
+            </Pressable>
+          </View>
+
+          {/* Revenue Summary Cards */}
+          <View style={styles.financialStatsRow}>
+            <View style={styles.financialCard}>
+              <Text style={styles.financialCardLabel}>Total PNBP Terkumpul</Text>
+              <Text style={styles.financialCardVal}>
+                Rp{(submissions.length * (parseInt(tariffSettings.pnbpSimA, 10) || 120000)).toLocaleString('id-ID')}
+              </Text>
+            </View>
+
+            <View style={styles.financialCard}>
+              <Text style={styles.financialCardLabel}>Total Biaya Admin Platform</Text>
+              <Text style={styles.financialCardVal}>
+                Rp{(submissions.length * (parseInt(tariffSettings.adminFee, 10) || 15000)).toLocaleString('id-ID')}
+              </Text>
+            </View>
+
+            <View style={styles.financialCard}>
+              <Text style={styles.financialCardLabel}>Total PPN 11% Resmi</Text>
+              <Text style={styles.financialCardVal}>
+                Rp{(submissions.length * 15400).toLocaleString('id-ID')}
+              </Text>
+            </View>
+
+            <View style={styles.financialCard}>
+              <Text style={styles.financialCardLabel}>Total Ongkir Pos Indonesia</Text>
+              <Text style={styles.financialCardVal}>
+                Rp{(submissions.length * 30000).toLocaleString('id-ID')}
+              </Text>
+            </View>
+          </View>
+
+          {/* Table Breakdown */}
+          <View style={styles.darkTableContainer}>
+            <View style={styles.darkTableHeaderRow}>
+              <Text style={[styles.darkThText, { width: 35, textAlign: 'center' }]}>No</Text>
+              <Text style={[styles.darkThText, { flex: 1.5 }]}>No. Resi</Text>
+              <Text style={[styles.darkThText, { flex: 1.5 }]}>Pemohon</Text>
+              <Text style={[styles.darkThText, { flex: 1.2 }]}>PNBP</Text>
+              <Text style={[styles.darkThText, { flex: 1 }]}>Admin</Text>
+              <Text style={[styles.darkThText, { flex: 1 }]}>PG Fee</Text>
+              <Text style={[styles.darkThText, { flex: 1 }]}>PPN 11%</Text>
+              <Text style={[styles.darkThText, { flex: 1 }]}>Ongkir</Text>
+              <Text style={[styles.darkThText, { flex: 1.3 }]}>Total Bayar</Text>
+            </View>
+
+            {submissions.map((sub, idx) => {
+              const pnbp = parseInt(tariffSettings.pnbpSimA, 10) || 120000;
+              const admin = parseInt(tariffSettings.adminFee, 10) || 15000;
+              const pg = parseInt(tariffSettings.pgFee, 10) || 5000;
+              const subtotal = pnbp + admin + pg;
+              const ppn = Math.round(subtotal * 0.11);
+              const ongkir = 30000;
+              const total = subtotal + ppn + ongkir;
+
+              return (
+                <View key={sub.id} style={styles.darkTableRow}>
+                  <Text style={[styles.darkTdText, { width: 35, textAlign: 'center' }]}>{idx + 1}</Text>
+                  <Text style={[styles.darkTdTextBold, { flex: 1.5 }]}>{sub.resiId}</Text>
+                  <Text style={[styles.darkTdText, { flex: 1.5 }]}>{sub.nama}</Text>
+                  <Text style={[styles.darkTdText, { flex: 1.2 }]}>Rp{pnbp.toLocaleString('id-ID')}</Text>
+                  <Text style={[styles.darkTdTextMuted, { flex: 1 }]}>Rp{admin.toLocaleString('id-ID')}</Text>
+                  <Text style={[styles.darkTdTextMuted, { flex: 1 }]}>Rp{pg.toLocaleString('id-ID')}</Text>
+                  <Text style={[styles.darkTdTextMuted, { flex: 1 }]}>Rp{ppn.toLocaleString('id-ID')}</Text>
+                  <Text style={[styles.darkTdTextMuted, { flex: 1 }]}>Rp{ongkir.toLocaleString('id-ID')}</Text>
+                  <Text style={[styles.darkTdTextBold, { color: '#60A5FA', flex: 1.3 }]}>Rp{total.toLocaleString('id-ID')}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
+      {/* VIEW 6: MANAJEMEN ALAMAT BERMASALAH & FOLLOW UP WA (Screenshot 3) */}
+      {adminSubTab === 'alamat' && (
+        <View style={styles.paymentSectionContainer}>
+          <View style={styles.tableSectionHeader}>
+            <View style={styles.paymentHeaderTitleRow}>
+              <Ionicons name="warning-outline" size={20} color={COLORS.warning} />
+              <Text style={styles.tableSectionTitle}>MANAJEMEN ALAMAT BERMASALAH / GAGAL KURIR POS</Text>
+            </View>
+          </View>
+
+          <View style={styles.adminCardBox}>
+            {problematicAddresses.map((prob) => (
+              <View key={prob.id} style={styles.problemAddressRow}>
+                <Ionicons name="alert-circle" size={24} color={COLORS.warning} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.problemName}>{prob.nama} ({prob.resiId})</Text>
+                  <Text style={styles.problemIssueText}>Kendala: {prob.issue}</Text>
+                  <Text style={styles.problemHpText}>No. Handphone: {prob.noHp}</Text>
+                </View>
+
+                <Pressable
+                  style={styles.waBtn}
+                  onPress={() => {
+                    setNoticeModal({
+                      visible: true,
+                      title: 'Simulasi Follow Up WhatsApp',
+                      message: `Pesan pengingat simulasi berhasil dikirimkan ke nomor ${prob.noHp} atas nama ${prob.nama} untuk memperbarui alamat pengiriman. (Mode Prototype Dummy)`,
+                      icon: 'logo-whatsapp',
+                    });
+                  }}
+                >
+                  <Ionicons name="logo-whatsapp" size={16} color="#FFFFFF" />
+                  <Text style={styles.waBtnText}>Follow Up WA (Simulasi)</Text>
+                </Pressable>
+              </View>
+            ))}
           </View>
         </View>
       )}
@@ -1471,10 +1975,197 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  confirmCancelBtnText: {
+  adminTabScrollRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingBottom: 4,
+    marginBottom: 16,
+  },
+  adminCardBox: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+    marginBottom: 16,
+    gap: 14,
+  },
+  adminCardTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.primary,
+    marginBottom: 8,
+  },
+  shippingItemRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  shippingApplicantName: {
+    fontSize: 14,
+    fontWeight: '800',
     color: COLORS.textPrimary,
-    fontSize: 13,
+  },
+  shippingSubText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  shippingAddressText: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  adminInputLabel: {
+    fontSize: 11,
     fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  adminTextInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 12,
+    color: COLORS.textPrimary,
+  },
+  shippingStatusPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  statusPillBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    cursor: Platform.OS === 'web' ? 'pointer' : 'auto',
+  },
+  statusPillBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  statusPillBtnText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  statusPillBtnTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  saveResiBtn: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  saveResiBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  adminTwoGridRow: {
+    flexDirection: 'row',
+    gap: 16,
+    flexWrap: 'wrap',
+  },
+  inputGroupMargin: {
+    gap: 4,
+  },
+  zoneRowInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  zoneNameText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  exportExcelBtn: {
+    backgroundColor: '#16A34A',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  exportExcelBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  financialStatsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 16,
+  },
+  financialCard: {
+    flex: 1,
+    minWidth: 160,
+    backgroundColor: '#1F2937',
+    borderWidth: 1,
+    borderColor: '#374151',
+    padding: 12,
+  },
+  financialCardLabel: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginBottom: 4,
+  },
+  financialCardVal: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#60A5FA',
+  },
+  problemAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  problemName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+  },
+  problemIssueText: {
+    fontSize: 12,
+    color: COLORS.warning,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  problemHpText: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+  waBtn: {
+    backgroundColor: '#25D366',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  waBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
   spacer: {
     height: 32,

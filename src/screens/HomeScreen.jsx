@@ -23,9 +23,9 @@ export default function HomeScreen({ onSelectService, onNavigateToTab }) {
       icon: 'finger-print-outline',
       title: 'Digital ID',
       desc: 'Identitas digital terenkripsi resmi sebagai representasi dokumen fisik.',
-      detailTitle: 'Teknologi Digital ID Korlantas',
+      detailTitle: 'Teknologi Digital ID SIM',
       detailContent:
-        'Digital ID adalah identitas digital resmi berbasis QR Code terenkripsi yang diakui secara sah oleh Korlantas POLRI. Memungkinkan pemilik SIM menunjukkan bukti lisensi berkendara aktif langsung dari smartphone saat pemeriksaan jalan raya tanpa khawatir kehilangan kartu fisik.',
+        'Digital ID adalah identitas digital resmi berbasis QR Code terenkripsi. Memungkinkan pemilik SIM menunjukkan bukti lisensi berkendara aktif langsung dari smartphone saat pemeriksaan tanpa khawatir kehilangan kartu fisik.',
       points: [
         'Terenkripsi dengan standar enkripsi AES-256 bit',
         'Verifikasi QR Code realtime untuk petugas di lapangan',
@@ -94,10 +94,10 @@ export default function HomeScreen({ onSelectService, onNavigateToTab }) {
     {
       num: '01',
       title: 'Unduh Aplikasi',
-      desc: 'Unduh via Play Store / App Store resmi Korlantas POLRI.',
+      desc: 'Unduh via Play Store / App Store resmi.',
       subSteps: [
         'Buka Google Play Store (Android) atau App Store (iOS)',
-        'Cari aplikasi resmi "Digital Korlantas POLRI"',
+        'Cari aplikasi resmi "JEJAK SIM Online"',
         'Unduh & izinkan akses lokasi serta kamera',
       ],
     },
@@ -181,7 +181,7 @@ export default function HomeScreen({ onSelectService, onNavigateToTab }) {
           <Text style={styles.sectionTitle}>LAYANAN UTAMA</Text>
         </View>
         <Pressable onPress={() => onNavigateToTab('services')}>
-          <Text style={styles.seeAllText}>Lihat Semua Layanan ➔</Text>
+          <Text style={styles.seeAllText}>Lihat Semua Layanan</Text>
         </Pressable>
       </View>
 
@@ -196,7 +196,7 @@ export default function HomeScreen({ onSelectService, onNavigateToTab }) {
             onPress={() =>
               onSelectService({
                 title: 'Perpanjangan SIM Nasional',
-                subtitle: 'Layanan perpanjangan SIM A/C online resmi Korlantas POLRI.',
+                subtitle: 'Layanan perpanjangan SIM A/C online resmi.',
                 iconName: 'card-outline',
               })
             }
