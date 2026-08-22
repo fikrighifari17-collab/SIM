@@ -50,18 +50,39 @@ app.post('/api/auth/login', async (req, res) => {
 // 2. API REGISTRASI AKUN BARU
 app.post('/api/auth/register', async (req, res) => {
   const { name, nik, noHp, email, password } = req.body;
+
+  // Validasi wajib
+  if (!name || !email || !password) {
+    return res.status(400).json({ success: false, message: 'Nama, email, dan password wajib diisi.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ success: false, message: 'Format email tidak valid.' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ success: false, message: 'Password minimal 8 karakter.' });
+  }
+  if (nik && !/^\d{16}$/.test(nik)) {
+    return res.status(400).json({ success: false, message: 'NIK harus 16 digit angka.' });
+  }
+  if (noHp && !/^\d{10,15}$/.test(noHp)) {
+    return res.status(400).json({ success: false, message: 'Nomor HP tidak valid (10–15 digit angka).' });
+  }
+  if (!/^[a-zA-Z\s'.,-]{2,100}$/.test(name.trim())) {
+    return res.status(400).json({ success: false, message: 'Nama tidak valid. Gunakan huruf saja.' });
+  }
+
   try {
-    const [existing] = await dbPool.execute('SELECT id FROM users WHERE email = ?', [email]);
+    const [existing] = await dbPool.execute('SELECT id FROM users WHERE email = ?', [email.toLowerCase()]);
     if (existing.length > 0) {
       return res.status(400).json({ success: false, message: 'Email sudah terdaftar!' });
     }
 
-    await dbPool.execute(
+    const [result] = await dbPool.execute(
       'INSERT INTO users (email, password, role, name, nik, no_hp) VALUES (?, ?, ?, ?, ?, ?)',
-      [email, password, 'customer', name, nik, noHp]
+      [email.toLowerCase(), password, 'customer', name.trim(), nik || null, noHp || null]
     );
 
-    const newUser = { email, role: 'customer', name, nik, noHp };
+    const newUser = { id: result.insertId, email: email.toLowerCase(), role: 'customer', name: name.trim(), nik: nik || null, no_hp: noHp || null };
     res.json({ success: true, user: newUser });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
