@@ -76,6 +76,20 @@ export default function AboutScreen() {
         'SIM fisik dikirim dalam amplop tertutup bersegel aman',
       ],
     },
+    security: {
+      title: 'Panduan Keamanan Sistem (Anti-Hacker)',
+      icon: 'shield-checkmark-outline',
+      desc: 'Standar protokol keamanan siber komprehensif untuk melindungi data pengguna dari serangan hacker.',
+      features: [
+        '1. Autentikasi: Password Hashing (bcrypt/Argon2) & MFA/2FA Role Admin',
+        '2. Validasi Input: Server-side Validation, Anti-SQL Injection & Anti-XSS Sanitization',
+        '3. Enkripsi Communication: HTTPS/TLS 1.3 & Encrypted Database Storage at Rest',
+        '4. API Protection: Short-Lived JWT Token Expiry & Rate Limiting Anti-DDoS',
+        '5. Infrastructure: Web Application Firewall (WAF) & Dependency Audit (npm audit)',
+        '6. Secure SDLC: Code Review, Penetration Testing & Anomaly Logging System',
+        '7. HTTP Security Headers: CSP, X-Frame-Options DENY, & HSTS Protocol',
+      ],
+    },
   };
 
   return (
@@ -222,6 +236,15 @@ export default function AboutScreen() {
         >
           <Ionicons name="document-text-outline" size={18} color={COLORS.textSecondary} />
           <Text style={styles.menuText}>Kebijakan Privasi & Syarat Ketentuan</Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.navyMuted} />
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [styles.menuItem, styles.borderTop, pressed && styles.menuItemPressed]}
+          onPress={() => setSelectedHelpModal(helpDetails.security)}
+        >
+          <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.primary} />
+          <Text style={styles.menuText}>Panduan Keamanan Sistem (Anti-Hacker)</Text>
           <Ionicons name="chevron-forward" size={16} color={COLORS.navyMuted} />
         </Pressable>
       </View>
