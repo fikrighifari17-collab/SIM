@@ -18,6 +18,7 @@ export default function AdminDashboardScreen({
   onLogout,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [simFilter, setSimFilter] = useState('Semua');
   const [selectedApplicant, setSelectedApplicant] = useState(null);
 
   // Compute Statistics
@@ -28,12 +29,18 @@ export default function AdminDashboardScreen({
 
   const filteredSubmissions = submissions.filter(item => {
     const q = searchQuery.toLowerCase();
-    return (
+    const matchesSearch =
       item.nama.toLowerCase().includes(q) ||
       item.nik.toLowerCase().includes(q) ||
       item.resiId.toLowerCase().includes(q) ||
-      item.serviceTitle.toLowerCase().includes(q)
-    );
+      item.serviceTitle.toLowerCase().includes(q) ||
+      (item.jenisSim && item.jenisSim.toLowerCase().includes(q));
+
+    const matchesSim =
+      simFilter === 'Semua' ||
+      (item.jenisSim && item.jenisSim.toLowerCase() === simFilter.toLowerCase());
+
+    return matchesSearch && matchesSim;
   });
 
   return (
@@ -85,7 +92,7 @@ export default function AdminDashboardScreen({
         </View>
       </View>
 
-      {/* Main Table Section */}
+      {/* Main Table Section Header */}
       <View style={styles.tableSectionHeader}>
         <Text style={styles.tableSectionTitle}>DAFTAR PENGAJUAN LAYANAN MASYARAKAT</Text>
 
@@ -94,7 +101,7 @@ export default function AdminDashboardScreen({
           <Ionicons name="search" size={16} color={COLORS.textSecondary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Cari berdasarkan NIK, Nama Pemohon, atau No Resi..."
+            placeholder="Cari berdasarkan NIK, Nama Pemohon, No Resi, atau Jenis SIM..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor={COLORS.textSecondary}
@@ -107,6 +114,39 @@ export default function AdminDashboardScreen({
               onPress={() => setSearchQuery('')}
             />
           )}
+        </View>
+
+        {/* SIM Type Filter Pills Bar */}
+        <View style={styles.simFilterBar}>
+          <Text style={styles.filterBarLabel}>Filter Golongan SIM:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPillsRow}>
+            {['Semua', 'SIM A', 'SIM C', 'SIM C1', 'SIM Internasional'].map((simType) => {
+              const isActive = simFilter === simType;
+              const count = simType === 'Semua'
+                ? submissions.length
+                : submissions.filter(s => s.jenisSim && s.jenisSim.toLowerCase() === simType.toLowerCase()).length;
+
+              return (
+                <Pressable
+                  key={simType}
+                  style={[
+                    styles.simFilterPill,
+                    isActive && styles.simFilterPillActive,
+                  ]}
+                  onPress={() => setSimFilter(simType)}
+                >
+                  <Ionicons
+                    name={isActive ? 'funnel' : 'funnel-outline'}
+                    size={13}
+                    color={isActive ? '#FFFFFF' : COLORS.textSecondary}
+                  />
+                  <Text style={[styles.simFilterPillText, isActive && styles.simFilterPillTextActive]}>
+                    {simType} ({count})
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
       </View>
 
@@ -423,6 +463,47 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     color: COLORS.textPrimary,
+  },
+  simFilterBar: {
+    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  filterBarLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  filterPillsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  simFilterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    borderRadius: 0,
+  },
+  simFilterPillActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  simFilterPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  simFilterPillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   tableCard: {
     backgroundColor: COLORS.surface,
