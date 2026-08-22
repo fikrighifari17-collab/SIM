@@ -25,7 +25,7 @@ export default function SubmissionFormScreen() {
   const { serviceId, title } = route.params;
   const { user } = useAuthStore();
 
-  const [satpasList, setSatpasList] = useState<SatpasLocation[]>([]);
+  const [satpasList, setSatpasList] = useState<string[]>([]);
   const [loadingSatpas, setLoadingSatpas] = useState(true);
   const [jenisSim, setJenisSim] = useState<JenisSIM>('A');
   const [selectedSatpas, setSelectedSatpas] = useState('');
@@ -36,7 +36,7 @@ export default function SubmissionFormScreen() {
 
   useEffect(() => {
     satpasAPI.getAll()
-      .then(res => setSatpasList(res.data))
+      .then(res => setSatpasList(res.data.satpas ?? []))
       .catch(() => {})
       .finally(() => setLoadingSatpas(false));
   }, []);
@@ -131,14 +131,13 @@ export default function SubmissionFormScreen() {
                 </TouchableOpacity>
                 {showSatpasPicker && (
                   <View style={styles.dropdown}>
-                    {satpasList.map((s, i) => (
+                    {satpasList.map((nama, i) => (
                       <TouchableOpacity
                         key={i}
                         style={[styles.dropdownItem, i < satpasList.length - 1 && styles.dropdownItemBorder]}
-                        onPress={() => { setSelectedSatpas(s.nama_satpas); setShowSatpasPicker(false); }}
+                        onPress={() => { setSelectedSatpas(nama); setShowSatpasPicker(false); }}
                       >
-                        <Text style={styles.dropdownName}>{s.nama_satpas}</Text>
-                        <Text style={styles.dropdownWilayah}>{s.wilayah}</Text>
+                        <Text style={styles.dropdownName}>{nama}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
