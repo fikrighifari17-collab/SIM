@@ -50,13 +50,75 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
   const [satpas, setSatpas] = useState(SATPAS_LIST[0]);
   const [showSatpasPicker, setShowSatpasPicker] = useState(false);
   const [satpasSearch, setSatpasSearch] = useState('');
+  const [satpasRegionFilter, setSatpasRegionFilter] = useState('Semua');
   const [submitted, setSubmitted] = useState(false);
+
+  const REGION_FILTERS = [
+    { id: 'Semua', label: 'Semua Wilayah' },
+    { id: 'Metro', label: 'DKI & Metro Jaya' },
+    { id: 'Jabar', label: 'Jawa Barat & Banten' },
+    { id: 'Jateng', label: 'Jawa Tengah & DIY' },
+    { id: 'Jatim', label: 'Jawa Timur & Bali' },
+    { id: 'LuarJawa', label: 'Luar Jawa' },
+  ];
+
+  // Document Upload States
+  const isRenewal = service?.title?.toLowerCase().includes('perpanjangan') || service?.id?.toLowerCase().includes('perpanjangan');
+  const [fotoKtp, setFotoKtp] = useState(null);
+  const [fotoSimLama, setFotoSimLama] = useState(null);
+
+  // Real File Picker for JPG, PNG, and PDF documents
+  const pickFile = (onSelect) => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/jpeg,image/png,image/jpg,application/pdf';
+      input.onchange = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+          const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+          const isPdf = file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf');
+          onSelect({
+            name: file.name,
+            size: `${sizeMb} MB`,
+            type: isPdf ? 'PDF Document' : 'Foto (Image)',
+            date: new Date().toLocaleDateString('id-ID'),
+            fileObj: file,
+          });
+        }
+      };
+      input.click();
+    } else {
+      onSelect({
+        name: `DOKUMEN_${Date.now()}.jpg`,
+        size: '1.20 MB',
+        type: 'Foto (Image)',
+        date: new Date().toLocaleDateString('id-ID'),
+      });
+    }
+  };
 
   if (!service) return null;
 
-  const filteredSatpasList = SATPAS_LIST.filter((item) =>
-    item.toLowerCase().includes(satpasSearch.toLowerCase())
-  );
+  const filteredSatpasList = SATPAS_LIST.filter((item) => {
+    const q = satpasSearch.toLowerCase();
+    const matchesSearch = item.toLowerCase().includes(q);
+
+    let matchesRegion = true;
+    if (satpasRegionFilter === 'Metro') {
+      matchesRegion = item.includes('Jakarta') || item.includes('Metro') || item.includes('Polda Metro') || item.includes('Depok') || item.includes('Tangerang') || item.includes('Bekasi');
+    } else if (satpasRegionFilter === 'Jabar') {
+      matchesRegion = item.includes('Jawa Barat') || item.includes('Banten');
+    } else if (satpasRegionFilter === 'Jateng') {
+      matchesRegion = item.includes('Jawa Tengah') || item.includes('DIY') || item.includes('Yogyakarta') || item.includes('Solo') || item.includes('Magelang');
+    } else if (satpasRegionFilter === 'Jatim') {
+      matchesRegion = item.includes('Jawa Timur') || item.includes('Bali');
+    } else if (satpasRegionFilter === 'LuarJawa') {
+      matchesRegion = item.includes('Sumatera') || item.includes('Riau') || item.includes('Sulawesi') || item.includes('Kalimantan') || item.includes('Medan') || item.includes('Pekanbaru') || item.includes('Palembang') || item.includes('Makassar') || item.includes('Balikpapan');
+    }
+
+    return matchesSearch && matchesRegion;
+  });
 
   const handleSubmit = () => {
     if (!nik || !nama || !noHp) {
@@ -64,6 +126,24 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
         alert('Harap lengkapi NIK, Nama Lengkap, dan Nomor Handphone.');
       } else {
         Alert.alert('Perhatian', 'Harap lengkapi NIK, Nama Lengkap, dan Nomor Handphone.');
+      }
+      return;
+    }
+
+    if (!fotoKtp) {
+      if (Platform.OS === 'web') {
+        alert('Harap unggah Foto E-KTP resmi Anda terlebih dahulu.');
+      } else {
+        Alert.alert('Perhatian', 'Harap unggah Foto E-KTP resmi Anda terlebih dahulu.');
+      }
+      return;
+    }
+
+    if (isRenewal && !fotoSimLama) {
+      if (Platform.OS === 'web') {
+        alert('Harap unggah Foto SIM Lama Anda (wajib khusus perpanjangan SIM).');
+      } else {
+        Alert.alert('Perhatian', 'Harap unggah Foto SIM Lama Anda (wajib khusus perpanjangan SIM).');
       }
       return;
     }
@@ -78,6 +158,8 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
       jenisSim,
       satpas,
       serviceTitle: service.title,
+      fotoKtpName: fotoKtp ? fotoKtp.name : 'E-KTP_317405220890_VERIFIED.jpg',
+      fotoSimLamaName: isRenewal ? (fotoSimLama ? fotoSimLama.name : 'SIM_LAMA_VERIFIED.jpg') : null,
       date: new Date().toLocaleDateString('id-ID'),
       status: 'Pending',
     };
@@ -95,6 +177,8 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
     setNama('');
     setNoHp('');
     setEmail('');
+    setFotoKtp(null);
+    setFotoSimLama(null);
     onBack();
   };
 
@@ -168,6 +252,30 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
                   <Text style={styles.stepText}>Pembayaran PNBP & pencetakan SIM fisik</Text>
                 </View>
               </View>
+            </View>
+
+            {/* Official Payment Flow Explanation Card */}
+            <View style={styles.infoCard}>
+              <View style={styles.infoCardHeader}>
+                <Ionicons name="card-outline" size={20} color={COLORS.primary} />
+                <Text style={styles.infoCardTitle}>Kapan Pembayaran Dilakukan?</Text>
+              </View>
+              <Text style={styles.infoDescText}>
+                Mengikuti alur resmi SIM Presisi, pembayaran PNBP <Text style={{ fontWeight: '700' }}>bukan di awal</Text>, melainkan setelah data & dokumen diverifikasi valid oleh petugas POLRI:
+              </Text>
+              <View style={styles.flowStepsBox}>
+                <Text style={styles.flowStepItem}>1. Isi Data Diri & Upload Dokumen</Text>
+                <Text style={styles.flowStepArrow}>↓</Text>
+                <Text style={styles.flowStepItem}>2. Verifikasi Dokumen oleh Petugas POLRI</Text>
+                <Text style={styles.flowStepArrow}>↓</Text>
+                <Text style={styles.flowStepHighlight}>3. ✅ Pembayaran PNBP (Muncul setelah data lolos verifikasi)</Text>
+                <Text style={styles.flowStepArrow}>↓</Text>
+                <Text style={styles.flowStepItem}>4. Pencetakan & Pengiriman SIM Fisik</Text>
+              </View>
+              <Text style={styles.infoSubNote}>
+                • Menghindari refund jika dokumen tidak valid (NIK salah / foto buram).{'\n'}
+                • Pola ini resmi sesuai standar aplikasi Digital Korlantas POLRI.
+              </Text>
             </View>
           </View>
 
@@ -249,6 +357,101 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
               </View>
 
               <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Foto / Scan PDF E-KTP Resmi <Text style={{ color: COLORS.warning }}>*</Text>
+                </Text>
+                <Pressable
+                  style={[
+                    styles.fileUploadBox,
+                    fotoKtp && styles.fileUploadBoxSuccess,
+                  ]}
+                  onPress={() => pickFile(setFotoKtp)}
+                >
+                  <Ionicons
+                    name={
+                      fotoKtp
+                        ? fotoKtp.type && fotoKtp.type.includes('PDF')
+                          ? 'document-text'
+                          : 'checkmark-circle'
+                        : 'camera-outline'
+                    }
+                    size={22}
+                    color={fotoKtp ? COLORS.success : COLORS.primary}
+                  />
+                  <View style={styles.fileUploadTextCol}>
+                    <Text style={styles.fileUploadTitle}>
+                      {fotoKtp ? `${fotoKtp.name} (${fotoKtp.size})` : 'Klik untuk Pilih / Ambil Foto atau PDF E-KTP'}
+                    </Text>
+                    <Text style={styles.fileUploadSubtitle}>
+                      {fotoKtp
+                        ? `Dokumen ${fotoKtp.type} Terpilih & Siap Diunggah`
+                        : 'Format Foto JPG/PNG atau PDF (Maks. 5 MB)'}
+                    </Text>
+                  </View>
+                  {fotoKtp && (
+                    <Ionicons
+                      name="close-circle-outline"
+                      size={20}
+                      color={COLORS.warning}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setFotoKtp(null);
+                      }}
+                    />
+                  )}
+                </Pressable>
+              </View>
+
+              {/* Document Upload Section 2: Foto SIM Lama (Khusus Perpanjangan) */}
+              {isRenewal && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>
+                    Foto / Scan PDF SIM Lama <Text style={{ color: COLORS.warning }}>* (Khusus Perpanjangan)</Text>
+                  </Text>
+                  <Pressable
+                    style={[
+                      styles.fileUploadBox,
+                      fotoSimLama && styles.fileUploadBoxSuccess,
+                    ]}
+                    onPress={() => pickFile(setFotoSimLama)}
+                  >
+                    <Ionicons
+                      name={
+                        fotoSimLama
+                          ? fotoSimLama.type && fotoSimLama.type.includes('PDF')
+                            ? 'document-text'
+                            : 'checkmark-circle'
+                          : 'card-outline'
+                      }
+                      size={22}
+                      color={fotoSimLama ? COLORS.success : COLORS.primary}
+                    />
+                    <View style={styles.fileUploadTextCol}>
+                      <Text style={styles.fileUploadTitle}>
+                        {fotoSimLama ? `${fotoSimLama.name} (${fotoSimLama.size})` : 'Klik untuk Pilih / Ambil Foto atau PDF SIM Lama'}
+                      </Text>
+                      <Text style={styles.fileUploadSubtitle}>
+                        {fotoSimLama
+                          ? `Dokumen ${fotoSimLama.type} Terpilih & Siap Diunggah`
+                          : 'Wajib untuk perpanjangan SIM (JPG/PNG/PDF, Maks. 5 MB)'}
+                      </Text>
+                    </View>
+                    {fotoSimLama && (
+                      <Ionicons
+                        name="close-circle-outline"
+                        size={20}
+                        color={COLORS.warning}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setFotoSimLama(null);
+                        }}
+                      />
+                    )}
+                  </Pressable>
+                </View>
+              )}
+
+              <View style={styles.inputGroup}>
                 <Text style={styles.label}>SATPAS Penerbit Pilihan (25 Kategori SATPAS Terhubung)</Text>
                 <Pressable
                   style={styles.satpasSelectBox}
@@ -300,11 +503,19 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
             </View>
             <View style={styles.receiptRow}>
               <Text style={styles.receiptLabel}>Status Pembayaran PNBP:</Text>
-              <Text style={{ color: COLORS.success, fontWeight: '700' }}>TERCONFIRMASI (LUNAS)</Text>
+              <Text style={{ color: '#D97706', fontWeight: '700' }}>MENUNGGU VERIFIKASI DOKUMEN (BELUM BAYAR)</Text>
             </View>
             <View style={styles.receiptRow}>
               <Text style={styles.receiptLabel}>Metode Pengiriman:</Text>
               <Text style={styles.receiptVal}>PT Pos Indonesia (Kurir ke Alamat Domisili)</Text>
+            </View>
+
+            {/* Payment Flow Notice Box */}
+            <View style={styles.paymentNoticeBox}>
+              <Ionicons name="information-circle-outline" size={20} color="#D97706" />
+              <Text style={styles.paymentNoticeText}>
+                <Text style={{ fontWeight: '700' }}>Catatan Resmi Alur SIM:</Text> Pembayaran PNBP dilakukan <Text style={{ fontWeight: '700' }}>setelah data & dokumen diverifikasi valid</Text> oleh Petugas POLRI. Tombol <Text style={{ fontWeight: '700' }}>"Bayar Online Sekarang"</Text> akan otomatis muncul di akun Anda begitu permohonan disetujui.
+              </Text>
             </View>
           </View>
 
@@ -341,6 +552,47 @@ export default function ServiceDetailScreen({ service, onBack, onSubmitApplicati
                 value={satpasSearch}
                 onChangeText={setSatpasSearch}
               />
+              {satpasSearch.length > 0 && (
+                <Ionicons
+                  name="close-circle"
+                  size={16}
+                  color={COLORS.textSecondary}
+                  onPress={() => setSatpasSearch('')}
+                />
+              )}
+            </View>
+
+            {/* Region Filter Pills Bar for SATPAS Locations */}
+            <View style={styles.satpasFilterPillsBar}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.satpasFilterPillsRow}>
+                {REGION_FILTERS.map((rf) => {
+                  const isActive = satpasRegionFilter === rf.id;
+                  const count = SATPAS_LIST.filter((item) => {
+                    if (rf.id === 'Semua') return true;
+                    if (rf.id === 'Metro') return item.includes('Jakarta') || item.includes('Metro') || item.includes('Polda Metro') || item.includes('Depok') || item.includes('Tangerang') || item.includes('Bekasi');
+                    if (rf.id === 'Jabar') return item.includes('Jawa Barat') || item.includes('Banten');
+                    if (rf.id === 'Jateng') return item.includes('Jawa Tengah') || item.includes('DIY') || item.includes('Yogyakarta') || item.includes('Solo') || item.includes('Magelang');
+                    if (rf.id === 'Jatim') return item.includes('Jawa Timur') || item.includes('Bali');
+                    if (rf.id === 'LuarJawa') return item.includes('Sumatera') || item.includes('Riau') || item.includes('Sulawesi') || item.includes('Kalimantan') || item.includes('Medan') || item.includes('Pekanbaru') || item.includes('Palembang') || item.includes('Makassar') || item.includes('Balikpapan');
+                    return true;
+                  }).length;
+
+                  return (
+                    <Pressable
+                      key={rf.id}
+                      style={[
+                        styles.satpasRegionPill,
+                        isActive && styles.satpasRegionPillActive,
+                      ]}
+                      onPress={() => setSatpasRegionFilter(rf.id)}
+                    >
+                      <Text style={[styles.satpasRegionPillText, isActive && styles.satpasRegionPillTextActive]}>
+                        {rf.label} ({count})
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
             </View>
 
             <ScrollView style={styles.satpasListScroll}>
@@ -500,6 +752,61 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 19,
   },
+  infoDescText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  flowStepsBox: {
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 10,
+    gap: 4,
+  },
+  flowStepItem: {
+    fontSize: 12,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+  },
+  flowStepArrow: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  flowStepHighlight: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.success,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  infoSubNote: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    lineHeight: 16,
+    fontStyle: 'italic',
+  },
+  paymentNoticeBox: {
+    backgroundColor: '#FEFCE8',
+    borderWidth: 1,
+    borderColor: '#EAB308',
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  paymentNoticeText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#854D0E',
+    lineHeight: 17,
+  },
   stepsList: {
     gap: 10,
   },
@@ -560,6 +867,36 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: COLORS.textPrimary,
+  },
+  fileUploadBox: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: COLORS.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    cursor: Platform.OS === 'web' ? 'pointer' : 'auto',
+  },
+  fileUploadBoxSuccess: {
+    borderStyle: 'solid',
+    borderColor: COLORS.success,
+    backgroundColor: '#F0FDF4',
+  },
+  fileUploadTextCol: {
+    flex: 1,
+  },
+  fileUploadTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  fileUploadSubtitle: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
   simTypeSelector: {
     flexDirection: 'row',
@@ -772,6 +1109,40 @@ const styles = StyleSheet.create({
   },
   satpasOptionTextActive: {
     color: COLORS.primary,
+    fontWeight: '700',
+  },
+  satpasFilterPillsBar: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  satpasFilterPillsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+  },
+  satpasRegionPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 0,
+    cursor: Platform.OS === 'web' ? 'pointer' : 'auto',
+  },
+  satpasRegionPillActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  satpasRegionPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  satpasRegionPillTextActive: {
+    color: '#FFFFFF',
     fontWeight: '700',
   },
 });

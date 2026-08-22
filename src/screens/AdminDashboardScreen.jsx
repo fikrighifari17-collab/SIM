@@ -17,17 +17,36 @@ export default function AdminDashboardScreen({
   onUpdateStatus,
   onLogout,
 }) {
+  const [adminSubTab, setAdminSubTab] = useState('verifikasi'); // 'verifikasi' | 'pembayaran'
   const [searchQuery, setSearchQuery] = useState('');
   const [simFilter, setSimFilter] = useState('Semua');
+  const [statusFilter, setStatusFilter] = useState('Semua');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('Semua');
   const [selectedApplicant, setSelectedApplicant] = useState(null);
+  
+  // Toast / Action notification modal state
+  const [noticeModal, setNoticeModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    icon: 'checkmark-circle',
+  });
+
+  const [confirmModal, setConfirmModal] = useState({
+    visible: false,
+    item: null,
+    action: '',
+    reason: '',
+  });
 
   // Compute Statistics
   const totalCount = submissions.length;
-  const pendingCount = submissions.filter(s => s.status === 'Pending').length;
-  const approvedCount = submissions.filter(s => s.status === 'Disetujui').length;
-  const rejectedCount = submissions.filter(s => s.status === 'Ditolak').length;
+  const pendingCount = submissions.filter((s) => s.status === 'Pending').length;
+  const approvedCount = submissions.filter((s) => s.status === 'Disetujui').length;
+  const rejectedCount = submissions.filter((s) => s.status === 'Ditolak').length;
 
-  const filteredSubmissions = submissions.filter(item => {
+  // Filtered submissions for Verification View
+  const filteredSubmissions = submissions.filter((item) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
       item.nama.toLowerCase().includes(q) ||
@@ -40,8 +59,75 @@ export default function AdminDashboardScreen({
       simFilter === 'Semua' ||
       (item.jenisSim && item.jenisSim.toLowerCase() === simFilter.toLowerCase());
 
-    return matchesSearch && matchesSim;
+    const matchesStatus =
+      statusFilter === 'Semua' || item.status === statusFilter;
+
+    return matchesSearch && matchesSim && matchesStatus;
   });
+
+  // Filtered submissions for Payment View
+  const filteredPayments = submissions.filter((item) => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      item.nama.toLowerCase().includes(q) ||
+      item.nik.toLowerCase().includes(q) ||
+      item.resiId.toLowerCase().includes(q) ||
+      item.serviceTitle.toLowerCase().includes(q) ||
+      (item.jenisSim && item.jenisSim.toLowerCase().includes(q));
+
+    let matchesPaymentStatus = true;
+    if (paymentStatusFilter === 'Lunas') {
+      matchesPaymentStatus = item.status === 'Lunas' || item.status === 'Disetujui & Cetak';
+    } else if (paymentStatusFilter === 'Pending') {
+      matchesPaymentStatus = item.status === 'Pending';
+    } else if (paymentStatusFilter === 'Gagal') {
+      matchesPaymentStatus = item.status === 'Ditolak';
+    }
+
+    return matchesSearch && matchesPaymentStatus;
+  });
+
+  const handleTriggerConfirm = (item, action) => {
+    setConfirmModal({
+      visible: true,
+      item,
+      action,
+      reason: '',
+    });
+  };
+
+  // Helper for Payment Status badge formatting (Matches Screenshot UI)
+  const getPaymentBadgeInfo = (item) => {
+    if (item.status === 'Lunas' || item.status === 'Disetujui & Cetak') {
+      return { label: 'Lunas', dotColor: '#10B981', textColor: '#34D399', date: item.date || '20 Agu 2026' };
+    } else if (item.status === 'Pending') {
+      return { label: 'Pending', dotColor: '#EAB308', textColor: '#FBBF24', date: '-' };
+    } else if (item.status === 'Ditolak') {
+      return { label: 'Gagal/Expired', dotColor: '#EF4444', textColor: '#F87171', date: '-' };
+    } else if (item.status === 'Disetujui') {
+      return { label: 'Siap Dibayar', dotColor: '#3B82F6', textColor: '#60A5FA', date: '-' };
+    } else {
+      return { label: 'Lunas', dotColor: '#10B981', textColor: '#34D399', date: item.date || '20 Agu 2026' };
+    }
+  };
+
+  const handleRecheckPayment = (item) => {
+    setNoticeModal({
+      visible: true,
+      title: 'Pengecekan Ulang Status Payment',
+      message: `Sistem sedang melakukan sinkronisasi ulang gateway Virtual Account / QRIS untuk NIK ${item.nik} (${item.nama}). Status pembayaran: MENUNGGU PEMBAYARAN MASYARAKAT.`,
+      icon: 'sync-circle',
+    });
+  };
+
+  const handleResendPaymentLink = (item) => {
+    setNoticeModal({
+      visible: true,
+      title: 'Link Pembayaran Terkirim',
+      message: `Link tagihan PNBP resmi & nomor Virtual Account terbaru telah dikirimkan ulang ke nomor WhatsApp ${item.noHp} atas nama ${item.nama}.`,
+      icon: 'send',
+    });
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -69,166 +155,381 @@ export default function AdminDashboardScreen({
         </Pressable>
       </View>
 
-      {/* Quick Metrics Cards */}
-      <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
-          <Text style={styles.statNum}>{totalCount}</Text>
-          <Text style={styles.statLabel}>Total Permohonan</Text>
-        </View>
-
-        <View style={[styles.statCard, { borderTopColor: '#EAB308' }]}>
-          <Text style={[styles.statNum, { color: '#D97706' }]}>{pendingCount}</Text>
-          <Text style={styles.statLabel}>Menunggu Verifikasi</Text>
-        </View>
-
-        <View style={[styles.statCard, { borderTopColor: COLORS.success }]}>
-          <Text style={[styles.statNum, { color: COLORS.success }]}>{approvedCount}</Text>
-          <Text style={styles.statLabel}>Disetujui & Cetak</Text>
-        </View>
-
-        <View style={[styles.statCard, { borderTopColor: COLORS.warning }]}>
-          <Text style={[styles.statNum, { color: COLORS.warning }]}>{rejectedCount}</Text>
-          <Text style={styles.statLabel}>Permohonan Ditolak</Text>
-        </View>
-      </View>
-
-      {/* Main Table Section Header */}
-      <View style={styles.tableSectionHeader}>
-        <Text style={styles.tableSectionTitle}>DAFTAR PENGAJUAN LAYANAN MASYARAKAT</Text>
-
-        {/* Search Bar */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={16} color={COLORS.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Cari berdasarkan NIK, Nama Pemohon, No Resi, atau Jenis SIM..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor={COLORS.textSecondary}
+      {/* Main Admin Tab Switcher */}
+      <View style={styles.adminTabRow}>
+        <Pressable
+          style={[
+            styles.adminTabBtn,
+            adminSubTab === 'verifikasi' && styles.adminTabBtnActive,
+          ]}
+          onPress={() => setAdminSubTab('verifikasi')}
+        >
+          <Ionicons
+            name="document-text-outline"
+            size={16}
+            color={adminSubTab === 'verifikasi' ? '#FFFFFF' : COLORS.textSecondary}
           />
-          {searchQuery.length > 0 && (
-            <Ionicons
-              name="close-circle"
-              size={16}
-              color={COLORS.textSecondary}
-              onPress={() => setSearchQuery('')}
-            />
-          )}
-        </View>
+          <Text
+            style={[
+              styles.adminTabBtnText,
+              adminSubTab === 'verifikasi' && styles.adminTabBtnTextActive,
+            ]}
+          >
+            Verifikasi Berkas SIM ({submissions.length})
+          </Text>
+        </Pressable>
 
-        {/* SIM Type Filter Pills Bar */}
-        <View style={styles.simFilterBar}>
-          <Text style={styles.filterBarLabel}>Filter Golongan SIM:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPillsRow}>
-            {['Semua', 'SIM A', 'SIM C', 'SIM C1', 'SIM Internasional'].map((simType) => {
-              const isActive = simFilter === simType;
-              const count = simType === 'Semua'
-                ? submissions.length
-                : submissions.filter(s => s.jenisSim && s.jenisSim.toLowerCase() === simType.toLowerCase()).length;
-
-              return (
-                <Pressable
-                  key={simType}
-                  style={[
-                    styles.simFilterPill,
-                    isActive && styles.simFilterPillActive,
-                  ]}
-                  onPress={() => setSimFilter(simType)}
-                >
-                  <Ionicons
-                    name={isActive ? 'funnel' : 'funnel-outline'}
-                    size={13}
-                    color={isActive ? '#FFFFFF' : COLORS.textSecondary}
-                  />
-                  <Text style={[styles.simFilterPillText, isActive && styles.simFilterPillTextActive]}>
-                    {simType} ({count})
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
+        <Pressable
+          style={[
+            styles.adminTabBtn,
+            adminSubTab === 'pembayaran' && styles.adminTabBtnActive,
+          ]}
+          onPress={() => setAdminSubTab('pembayaran')}
+        >
+          <Ionicons
+            name="card-outline"
+            size={16}
+            color={adminSubTab === 'pembayaran' ? '#FFFFFF' : COLORS.textSecondary}
+          />
+          <Text
+            style={[
+              styles.adminTabBtnText,
+              adminSubTab === 'pembayaran' && styles.adminTabBtnTextActive,
+            ]}
+          >
+            Rekap Status Pembayaran ({submissions.length})
+          </Text>
+        </Pressable>
       </View>
 
-      {/* Applications List Table */}
-      <View style={styles.tableCard}>
-        {filteredSubmissions.length > 0 ? (
-          filteredSubmissions.map((item) => (
-            <View key={item.id} style={styles.tableRow}>
-              {/* Row Left Data */}
-              <View style={styles.rowMainCol}>
-                <View style={styles.rowTitleRow}>
-                  <Text style={styles.resiIdText}>{item.resiId}</Text>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      item.status === 'Disetujui' && styles.statusApproved,
-                      item.status === 'Ditolak' && styles.statusRejected,
-                      item.status === 'Pending' && styles.statusPending,
-                    ]}
-                  >
-                    <Text
+      {/* QUICK METRICS CARDS */}
+      <View style={styles.statsGrid}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.statCard,
+            statusFilter === 'Semua' && styles.statCardActiveSemua,
+            pressed && styles.statCardPressed,
+          ]}
+          onPress={() => setStatusFilter('Semua')}
+        >
+          <Text style={styles.statNum}>{totalCount}</Text>
+          <View style={styles.statLabelRow}>
+            <Text style={styles.statLabel}>Total Permohonan</Text>
+            {statusFilter === 'Semua' && <Ionicons name="checkmark-circle" size={14} color={COLORS.primary} />}
+          </View>
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.statCard,
+            { borderTopColor: '#EAB308' },
+            statusFilter === 'Pending' && styles.statCardActivePending,
+            pressed && styles.statCardPressed,
+          ]}
+          onPress={() => setStatusFilter('Pending')}
+        >
+          <Text style={[styles.statNum, { color: '#D97706' }]}>{pendingCount}</Text>
+          <View style={styles.statLabelRow}>
+            <Text style={styles.statLabel}>Menunggu Verifikasi</Text>
+            {statusFilter === 'Pending' && <Ionicons name="checkmark-circle" size={14} color="#D97706" />}
+          </View>
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.statCard,
+            { borderTopColor: COLORS.success },
+            statusFilter === 'Disetujui' && styles.statCardActiveApproved,
+            pressed && styles.statCardPressed,
+          ]}
+          onPress={() => setStatusFilter('Disetujui')}
+        >
+          <Text style={[styles.statNum, { color: COLORS.success }]}>{approvedCount}</Text>
+          <View style={styles.statLabelRow}>
+            <Text style={styles.statLabel}>Disetujui & Cetak</Text>
+            {statusFilter === 'Disetujui' && <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />}
+          </View>
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.statCard,
+            { borderTopColor: COLORS.warning },
+            statusFilter === 'Ditolak' && styles.statCardActiveRejected,
+            pressed && styles.statCardPressed,
+          ]}
+          onPress={() => setStatusFilter('Ditolak')}
+        >
+          <Text style={[styles.statNum, { color: COLORS.warning }]}>{rejectedCount}</Text>
+          <View style={styles.statLabelRow}>
+            <Text style={styles.statLabel}>Permohonan Ditolak</Text>
+            {statusFilter === 'Ditolak' && <Ionicons name="checkmark-circle" size={14} color={COLORS.warning} />}
+          </View>
+        </Pressable>
+      </View>
+
+      {/* VIEW 1: VERIFIKASI BERKAS SIM */}
+      {adminSubTab === 'verifikasi' && (
+        <>
+          <View style={styles.tableSectionHeader}>
+            <Text style={styles.tableSectionTitle}>DAFTAR PENGAJUAN LAYANAN MASYARAKAT</Text>
+
+            {/* Search Bar */}
+            <View style={styles.searchBar}>
+              <Ionicons name="search" size={16} color={COLORS.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Cari berdasarkan NIK, Nama Pemohon, No Resi, atau Jenis SIM..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholderTextColor={COLORS.textSecondary}
+              />
+              {searchQuery.length > 0 && (
+                <Ionicons
+                  name="close-circle"
+                  size={16}
+                  color={COLORS.textSecondary}
+                  onPress={() => setSearchQuery('')}
+                />
+              )}
+            </View>
+
+            {/* SIM Type Filter Pills Bar */}
+            <View style={styles.simFilterBar}>
+              <Text style={styles.filterBarLabel}>Filter Golongan SIM:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterPillsRow}>
+                {['Semua', 'SIM A', 'SIM C', 'SIM C1', 'SIM Internasional'].map((simType) => {
+                  const isActive = simFilter === simType;
+                  const count = simType === 'Semua'
+                    ? submissions.length
+                    : submissions.filter(s => s.jenisSim && s.jenisSim.toLowerCase() === simType.toLowerCase()).length;
+
+                  return (
+                    <Pressable
+                      key={simType}
                       style={[
-                        styles.statusBadgeText,
-                        item.status === 'Disetujui' && styles.statusApprovedText,
-                        item.status === 'Ditolak' && styles.statusRejectedText,
-                        item.status === 'Pending' && styles.statusPendingText,
+                        styles.simFilterPill,
+                        isActive && styles.simFilterPillActive,
                       ]}
+                      onPress={() => setSimFilter(simType)}
                     >
-                      {item.status === 'Pending' ? 'Menunggu Verifikasi' : item.status}
+                      <Ionicons
+                        name={isActive ? 'funnel' : 'funnel-outline'}
+                        size={13}
+                        color={isActive ? '#FFFFFF' : COLORS.textSecondary}
+                      />
+                      <Text style={[styles.simFilterPillText, isActive && styles.simFilterPillTextActive]}>
+                        {simType} ({count})
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+
+          {/* Applications List Table */}
+          <View style={styles.tableCard}>
+            {filteredSubmissions.length > 0 ? (
+              filteredSubmissions.map((item) => (
+                <View key={item.id} style={styles.tableRow}>
+                  {/* Row Left Data */}
+                  <View style={styles.rowMainCol}>
+                    <View style={styles.rowTitleRow}>
+                      <Text style={styles.resiIdText}>{item.resiId}</Text>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          item.status === 'Disetujui' && styles.statusApproved,
+                          item.status === 'Ditolak' && styles.statusRejected,
+                          item.status === 'Pending' && styles.statusPending,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.statusBadgeText,
+                            item.status === 'Disetujui' && styles.statusApprovedText,
+                            item.status === 'Ditolak' && styles.statusRejectedText,
+                            item.status === 'Pending' && styles.statusPendingText,
+                          ]}
+                        >
+                          {item.status === 'Pending' ? 'Menunggu Verifikasi' : item.status}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.applicantNameText}>{item.nama}</Text>
+                    <Text style={styles.applicantDetailsText}>
+                      NIK: {item.nik} | No HP: {item.noHp}
                     </Text>
+                    <Text style={styles.serviceTypeText}>
+                      Layanan: <Text style={{ fontWeight: '700' }}>{item.serviceTitle}</Text> ({item.jenisSim})
+                    </Text>
+                    <Text style={styles.satpasText}>SATPAS: {item.satpas} | Tgl: {item.date}</Text>
+                  </View>
+
+                  {/* Row Action Buttons */}
+                  <View style={styles.rowActionsCol}>
+                    <Pressable
+                      style={styles.detailBtn}
+                      onPress={() => setSelectedApplicant(item)}
+                    >
+                      <Ionicons name="eye-outline" size={14} color={COLORS.primary} />
+                      <Text style={styles.detailBtnText}>Detail Berkas</Text>
+                    </Pressable>
+
+                    {item.status === 'Pending' && (
+                      <View style={styles.actionBtnGroup}>
+                        <Pressable
+                          style={styles.approveBtn}
+                          onPress={() => handleTriggerConfirm(item, 'Disetujui')}
+                        >
+                          <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                          <Text style={styles.actionBtnText}>Setujui</Text>
+                        </Pressable>
+
+                        <Pressable
+                          style={styles.rejectBtn}
+                          onPress={() => handleTriggerConfirm(item, 'Ditolak')}
+                        >
+                          <Ionicons name="close" size={14} color="#FFFFFF" />
+                          <Text style={styles.actionBtnText}>Tolak</Text>
+                        </Pressable>
+                      </View>
+                    )}
                   </View>
                 </View>
-
-                <Text style={styles.applicantNameText}>{item.nama}</Text>
-                <Text style={styles.applicantDetailsText}>
-                  NIK: {item.nik} | No HP: {item.noHp}
-                </Text>
-                <Text style={styles.serviceTypeText}>
-                  Layanan: <Text style={{ fontWeight: '700' }}>{item.serviceTitle}</Text> ({item.jenisSim})
-                </Text>
-                <Text style={styles.satpasText}>SATPAS: {item.satpas} | Tgl: {item.date}</Text>
+              ))
+            ) : (
+              <View style={styles.emptyRow}>
+                <Ionicons name="documents-outline" size={32} color={COLORS.textSecondary} />
+                <Text style={styles.emptyText}>Tidak ada pengajuan SIM yang cocok.</Text>
               </View>
+            )}
+          </View>
+        </>
+      )}
 
-              {/* Row Action Buttons */}
-              <View style={styles.rowActionsCol}>
-                <Pressable
-                  style={styles.detailBtn}
-                  onPress={() => setSelectedApplicant(item)}
-                >
-                  <Ionicons name="eye-outline" size={14} color={COLORS.primary} />
-                  <Text style={styles.detailBtnText}>Detail Berkas</Text>
-                </Pressable>
+      {/* VIEW 2: REKAPITULASI PEMBAYARAN PNBP ONLINE (MATCHING USER SCREENSHOT DESIGN) */}
+      {adminSubTab === 'pembayaran' && (
+        <View style={styles.paymentSectionContainer}>
+          <View style={styles.tableSectionHeader}>
+            <View style={styles.paymentHeaderTitleRow}>
+              <Ionicons name="wallet-outline" size={20} color={COLORS.primary} />
+              <Text style={styles.tableSectionTitle}>REKAPITULASI STATUS PEMBAYARAN PNBP MASYARAKAT</Text>
+            </View>
 
-                {item.status === 'Pending' && (
-                  <View style={styles.actionBtnGroup}>
+            {/* Filter Pills for Payment Status */}
+            <View style={styles.simFilterBar}>
+              <Text style={styles.filterBarLabel}>Filter Status Pembayaran:</Text>
+              <View style={styles.filterPillsRow}>
+                {[
+                  { id: 'Semua', label: 'Semua' },
+                  { id: 'Lunas', label: 'Lunas 🟢' },
+                  { id: 'Pending', label: 'Pending 🟡' },
+                  { id: 'Gagal', label: 'Gagal / Expired 🔴' },
+                ].map((pPill) => {
+                  const isActive = paymentStatusFilter === pPill.id;
+                  return (
                     <Pressable
-                      style={styles.approveBtn}
-                      onPress={() => onUpdateStatus(item.id, 'Disetujui')}
+                      key={pPill.id}
+                      style={[
+                        styles.simFilterPill,
+                        isActive && styles.simFilterPillActive,
+                      ]}
+                      onPress={() => setPaymentStatusFilter(pPill.id)}
                     >
-                      <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-                      <Text style={styles.actionBtnText}>Setujui</Text>
+                      <Text style={[styles.simFilterPillText, isActive && styles.simFilterPillTextActive]}>
+                        {pPill.label}
+                      </Text>
                     </Pressable>
-
-                    <Pressable
-                      style={styles.rejectBtn}
-                      onPress={() => onUpdateStatus(item.id, 'Ditolak')}
-                    >
-                      <Ionicons name="close" size={14} color="#FFFFFF" />
-                      <Text style={styles.actionBtnText}>Tolak</Text>
-                    </Pressable>
-                  </View>
-                )}
+                  );
+                })}
               </View>
             </View>
-          ))
-        ) : (
-          <View style={styles.emptyRow}>
-            <Ionicons name="documents-outline" size={32} color={COLORS.textSecondary} />
-            <Text style={styles.emptyText}>Tidak ada pengajuan SIM yang cocok.</Text>
           </View>
-        )}
-      </View>
+
+          {/* Dark Table Container (Matches Screenshot Aesthetics) */}
+          <View style={styles.darkTableContainer}>
+            {/* Dark Table Header Row */}
+            <View style={styles.darkTableHeaderRow}>
+              <Text style={[styles.darkThText, { width: 40, textAlign: 'center' }]}>No</Text>
+              <Text style={[styles.darkThText, { flex: 1.6 }]}>Nama Pemohon</Text>
+              <Text style={[styles.darkThText, { flex: 1.4 }]}>NIK</Text>
+              <Text style={[styles.darkThText, { flex: 1.8 }]}>Jenis Layanan</Text>
+              <Text style={[styles.darkThText, { flex: 1.4 }]}>Status Pembayaran</Text>
+              <Text style={[styles.darkThText, { flex: 1.2 }]}>Tanggal Bayar</Text>
+              <Text style={[styles.darkThText, { flex: 1.4, textAlign: 'center' }]}>Aksi</Text>
+            </View>
+
+            {/* Dark Table Rows */}
+            {filteredPayments.length > 0 ? (
+              filteredPayments.map((item, idx) => {
+                const pInfo = getPaymentBadgeInfo(item);
+                const maskedNik = item.nik.length > 6 ? item.nik.substring(0, 4) + 'xx...' : item.nik;
+                const displayService = item.jenisSim ? `${item.jenisSim} (${item.serviceTitle.includes('Perpanjangan') ? 'Perpanjang' : 'Baru'})` : item.serviceTitle;
+
+                return (
+                  <View key={item.id} style={styles.darkTableRow}>
+                    <Text style={[styles.darkTdText, { width: 40, textAlign: 'center', fontWeight: '700' }]}>
+                      {idx + 1}
+                    </Text>
+                    
+                    <Text style={[styles.darkTdTextBold, { flex: 1.6 }]}>
+                      {item.nama}
+                    </Text>
+                    
+                    <Text style={[styles.darkTdTextMuted, { flex: 1.4 }]}>
+                      {maskedNik}
+                    </Text>
+                    
+                    <Text style={[styles.darkTdText, { flex: 1.8 }]}>
+                      {displayService}
+                    </Text>
+
+                    {/* Status Dot Column */}
+                    <View style={[styles.darkTdCol, { flex: 1.4, flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+                      <View style={[styles.colorDot, { backgroundColor: pInfo.dotColor }]} />
+                      <Text style={[styles.darkTdStatusText, { color: pInfo.textColor }]}>
+                        {pInfo.label}
+                      </Text>
+                    </View>
+
+                    <Text style={[styles.darkTdTextMuted, { flex: 1.2 }]}>
+                      {pInfo.date}
+                    </Text>
+
+                    {/* Action Column */}
+                    <View style={[styles.darkTdCol, { flex: 1.4, alignItems: 'center', justifyContent: 'center' }]}>
+                      {pInfo.label === 'Lunas' && (
+                        <Pressable style={styles.darkActionBtnLink} onPress={() => setSelectedApplicant(item)}>
+                          <Text style={styles.darkActionBtnLinkText}>Lihat Detail</Text>
+                        </Pressable>
+                      )}
+
+                      {pInfo.label === 'Pending' && (
+                        <Pressable style={styles.darkActionBtnLink} onPress={() => handleRecheckPayment(item)}>
+                          <Text style={[styles.darkActionBtnLinkText, { color: '#FBBF24' }]}>Cek Ulang</Text>
+                        </Pressable>
+                      )}
+
+                      {(pInfo.label === 'Gagal/Expired' || pInfo.label === 'Siap Dibayar') && (
+                        <Pressable style={styles.darkActionBtnLink} onPress={() => handleResendPaymentLink(item)}>
+                          <Text style={[styles.darkActionBtnLinkText, { color: '#60A5FA' }]}>Kirim Ulang Link</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  </View>
+                );
+              })
+            ) : (
+              <View style={styles.emptyDarkRow}>
+                <Text style={styles.emptyDarkText}>Tidak ada rekap pembayaran yang cocok.</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
 
       {/* Applicant Document Detail Modal */}
       <Modal
@@ -278,6 +579,29 @@ export default function AdminDashboardScreen({
                   <Text style={styles.detailVal}>{selectedApplicant.satpas}</Text>
                 </View>
 
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Status Pembayaran PNBP:</Text>
+                  <Text style={[styles.detailValBold, { color: COLORS.primary }]}>
+                    {selectedApplicant.status === 'Lunas' ? 'LUNAS (Rp 125.000)' : 'MENUNGGU VERIFIKASI/PEMBAYARAN'}
+                  </Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Berkas Foto E-KTP:</Text>
+                  <Text style={styles.detailValBold}>
+                    {selectedApplicant.fotoKtpName || 'E-KTP_317405220890_VERIFIED.jpg'} (Valid 100%)
+                  </Text>
+                </View>
+
+                {selectedApplicant.serviceTitle?.toLowerCase().includes('perpanjangan') && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Berkas Foto SIM Lama:</Text>
+                    <Text style={styles.detailValBold}>
+                      {selectedApplicant.fotoSimLamaName || 'SIM_LAMA_8892123_VERIFIED.jpg'} (Valid 100%)
+                    </Text>
+                  </View>
+                )}
+
                 <View style={styles.verificationBox}>
                   <Text style={styles.verificationTitle}>Status Verifikasi Berkas Biometrik & Kesehatan:</Text>
                   <View style={styles.verifItem}>
@@ -298,10 +622,7 @@ export default function AdminDashboardScreen({
                   <View style={styles.modalActionRow}>
                     <Pressable
                       style={styles.modalApproveBtn}
-                      onPress={() => {
-                        onUpdateStatus(selectedApplicant.id, 'Disetujui');
-                        setSelectedApplicant(null);
-                      }}
+                      onPress={() => handleTriggerConfirm(selectedApplicant, 'Disetujui')}
                     >
                       <Ionicons name="checkmark-done" size={16} color="#FFFFFF" />
                       <Text style={styles.modalApproveText}>Setujui & Cetak SIM Sekarang</Text>
@@ -309,10 +630,7 @@ export default function AdminDashboardScreen({
 
                     <Pressable
                       style={styles.modalRejectBtn}
-                      onPress={() => {
-                        onUpdateStatus(selectedApplicant.id, 'Ditolak');
-                        setSelectedApplicant(null);
-                      }}
+                      onPress={() => handleTriggerConfirm(selectedApplicant, 'Ditolak')}
                     >
                       <Ionicons name="close-circle" size={16} color="#FFFFFF" />
                       <Text style={styles.modalRejectText}>Tolak Pengajuan</Text>
@@ -327,6 +645,146 @@ export default function AdminDashboardScreen({
                   <Text style={styles.modalCloseBtnText}>Tutup Modal</Text>
                 </Pressable>
               </ScrollView>
+            </View>
+          </View>
+        )}
+      </Modal>
+
+      {/* Toast Notice Notification Modal */}
+      <Modal
+        visible={noticeModal.visible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setNoticeModal({ ...noticeModal, visible: false })}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxWidth: 440, alignItems: 'center', padding: 24 }]}>
+            <Ionicons name={noticeModal.icon} size={56} color={COLORS.primary} />
+            <Text style={styles.noticeModalTitle}>{noticeModal.title}</Text>
+            <Text style={styles.noticeModalMessage}>{noticeModal.message}</Text>
+            <Pressable
+              style={styles.modalCloseBtn}
+              onPress={() => setNoticeModal({ ...noticeModal, visible: false })}
+            >
+              <Text style={styles.modalCloseBtnText}>Mengerti & Tutup</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 2-Step Verification Confirmation Modal */}
+      <Modal
+        visible={confirmModal.visible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setConfirmModal({ ...confirmModal, visible: false })}
+      >
+        {confirmModal.item && (
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { maxWidth: 480 }]}>
+              {/* Confirm Modal Header */}
+              <View
+                style={[
+                  styles.modalHeader,
+                  {
+                    backgroundColor:
+                      confirmModal.action === 'Disetujui' ? COLORS.success : COLORS.warning,
+                  },
+                ]}
+              >
+                <View style={styles.confirmHeaderRow}>
+                  <Ionicons
+                    name={confirmModal.action === 'Disetujui' ? 'shield-checkmark' : 'alert-circle'}
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.modalHeaderTitle}>
+                    Konfirmasi Verifikasi Petugas (Step 2/2)
+                  </Text>
+                </View>
+                <Pressable onPress={() => setConfirmModal({ ...confirmModal, visible: false })}>
+                  <Ionicons name="close" size={20} color="#FFFFFF" />
+                </Pressable>
+              </View>
+
+              {/* Confirm Modal Body */}
+              <View style={styles.modalBody}>
+                <View style={styles.confirmBanner}>
+                  <Text style={styles.confirmQuestionText}>
+                    Apakah Anda yakin ingin{' '}
+                    <Text
+                      style={{
+                        fontWeight: '800',
+                        color: confirmModal.action === 'Disetujui' ? COLORS.success : COLORS.warning,
+                      }}
+                    >
+                      {confirmModal.action === 'Disetujui' ? 'MENSETUJUI & MENCETAK' : 'MENOLAK'}
+                    </Text>{' '}
+                    permohonan SIM masyarakat berikut?
+                  </Text>
+
+                  <View style={styles.confirmSummaryBox}>
+                    <Text style={styles.confirmSummaryRow}>
+                      <Text style={styles.confirmSummaryLabel}>Nama Pemohon: </Text>
+                      <Text style={styles.confirmSummaryVal}>{confirmModal.item.nama}</Text>
+                    </Text>
+                    <Text style={styles.confirmSummaryRow}>
+                      <Text style={styles.confirmSummaryLabel}>No. Resi Registrasi: </Text>
+                      <Text style={styles.confirmSummaryValBold}>{confirmModal.item.resiId}</Text>
+                    </Text>
+                    <Text style={styles.confirmSummaryRow}>
+                      <Text style={styles.confirmSummaryLabel}>Layanan & Golongan: </Text>
+                      <Text style={styles.confirmSummaryVal}>{confirmModal.item.serviceTitle} ({confirmModal.item.jenisSim})</Text>
+                    </Text>
+                  </View>
+                </View>
+
+                {confirmModal.action === 'Ditolak' && (
+                  <View style={styles.reasonInputBox}>
+                    <Text style={styles.reasonInputLabel}>Alasan Penolakan / Catatan Verifikator:</Text>
+                    <TextInput
+                      style={styles.reasonTextInput}
+                      placeholder="Contoh: Foto E-KTP buram / Berkas kesehatan kadaluarsa"
+                      value={confirmModal.reason}
+                      onChangeText={(text) => setConfirmModal({ ...confirmModal, reason: text })}
+                      placeholderTextColor={COLORS.textSecondary}
+                    />
+                  </View>
+                )}
+
+                <View style={styles.confirmActionRow}>
+                  <Pressable
+                    style={[
+                      styles.confirmFinalBtn,
+                      {
+                        backgroundColor:
+                          confirmModal.action === 'Disetujui' ? COLORS.success : COLORS.warning,
+                      },
+                    ]}
+                    onPress={() => {
+                      onUpdateStatus(confirmModal.item.id, confirmModal.action);
+                      setConfirmModal({ visible: false, item: null, action: '', reason: '' });
+                      if (selectedApplicant) setSelectedApplicant(null);
+                    }}
+                  >
+                    <Ionicons
+                      name={confirmModal.action === 'Disetujui' ? 'checkmark-done-circle' : 'close-circle'}
+                      size={18}
+                      color="#FFFFFF"
+                    />
+                    <Text style={styles.confirmFinalBtnText}>
+                      Ya, Konfirmasi {confirmModal.action === 'Disetujui' ? 'Setujui' : 'Tolak'}
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.confirmCancelBtn}
+                    onPress={() => setConfirmModal({ visible: false, item: null, action: '', reason: '' })}
+                  >
+                    <Text style={styles.confirmCancelBtnText}>Batal</Text>
+                  </Pressable>
+                </View>
+              </View>
             </View>
           </View>
         )}
@@ -351,7 +809,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     padding: 20,
     borderRadius: 0,
-    marginBottom: 20,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.navyMuted,
     flexDirection: 'row',
@@ -410,6 +868,38 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+
+  /* Main Admin Tab Row Styles */
+  adminTabRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  adminTabBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  adminTabBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  adminTabBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
+  adminTabBtnTextActive: {
+    color: '#FFFFFF',
+  },
+
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -426,6 +916,36 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.primary,
     flex: 1,
     minWidth: Platform.OS === 'web' ? 200 : '48%',
+    cursor: Platform.OS === 'web' ? 'pointer' : 'auto',
+  },
+  statCardPressed: {
+    opacity: 0.8,
+  },
+  statCardActiveSemua: {
+    backgroundColor: '#F0F9FF',
+    borderColor: COLORS.primary,
+    borderWidth: 2,
+  },
+  statCardActivePending: {
+    backgroundColor: '#FEFCE8',
+    borderColor: '#EAB308',
+    borderWidth: 2,
+  },
+  statCardActiveApproved: {
+    backgroundColor: '#F0FDF4',
+    borderColor: COLORS.success,
+    borderWidth: 2,
+  },
+  statCardActiveRejected: {
+    backgroundColor: '#FEF2F2',
+    borderColor: COLORS.warning,
+    borderWidth: 2,
+  },
+  statLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 4,
   },
   statNum: {
     fontSize: 26,
@@ -447,6 +967,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.primary,
     letterSpacing: 0.8,
+  },
+  paymentHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   searchBar: {
     backgroundColor: COLORS.surface,
@@ -505,6 +1030,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
   },
+
   tableCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 0,
@@ -585,46 +1111,43 @@ const styles = StyleSheet.create({
   },
   rowActionsCol: {
     flexDirection: 'column',
-    alignItems: 'flex-end',
     gap: 8,
-  },
-  detailBtn: {
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  detailBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primary,
+    alignItems: 'flex-end',
   },
   actionBtnGroup: {
     flexDirection: 'row',
     gap: 6,
   },
+  detailBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  detailBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.accent,
+  },
   approveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: COLORS.success,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 0,
+  },
+  rejectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-  },
-  rejectBtn: {
     backgroundColor: COLORS.warning,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
   },
   actionBtnText: {
     color: '#FFFFFF',
@@ -632,14 +1155,100 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   emptyRow: {
-    padding: 30,
+    padding: 32,
     alignItems: 'center',
     gap: 8,
   },
   emptyText: {
-    fontSize: 13,
     color: COLORS.textSecondary,
+    fontSize: 14,
   },
+
+  /* DARK THEME TABLE STYLES (MATCHES USER SCREENSHOT) */
+  paymentSectionContainer: {
+    marginTop: 8,
+  },
+  darkTableContainer: {
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: '#374151',
+    borderRadius: 0,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  darkTableHeaderRow: {
+    backgroundColor: '#1F2937',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#374151',
+  },
+  darkThText: {
+    color: '#E5E7EB',
+    fontSize: 13,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'web' ? 'Georgia, serif' : 'System',
+  },
+  darkTableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F2937',
+  },
+  darkTdText: {
+    color: '#F3F4F6',
+    fontSize: 13,
+    fontFamily: Platform.OS === 'web' ? 'Georgia, serif' : 'System',
+  },
+  darkTdTextBold: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'web' ? 'Georgia, serif' : 'System',
+  },
+  darkTdTextMuted: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    fontFamily: Platform.OS === 'web' ? 'Georgia, serif' : 'System',
+  },
+  darkTdCol: {
+    justifyContent: 'center',
+  },
+  colorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  darkTdStatusText: {
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'web' ? 'Georgia, serif' : 'System',
+  },
+  darkActionBtnLink: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  darkActionBtnLinkText: {
+    color: '#F3F4F6',
+    fontSize: 13,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+    fontFamily: Platform.OS === 'web' ? 'Georgia, serif' : 'System',
+  },
+  emptyDarkRow: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  emptyDarkText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+  },
+
+  /* MODAL STYLES */
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(10, 37, 64, 0.65)',
@@ -650,16 +1259,16 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: COLORS.surface,
     borderRadius: 0,
-    maxWidth: 540,
+    maxWidth: 580,
     width: '100%',
-    maxHeight: '90%',
+    maxHeight: '85%',
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   modalHeader: {
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -671,13 +1280,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   modalBody: {
-    padding: 20,
+    padding: 18,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   detailLabel: {
     fontSize: 13,
@@ -703,8 +1314,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   verificationTitle: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
     color: COLORS.primary,
     marginBottom: 4,
   },
@@ -716,52 +1327,156 @@ const styles = StyleSheet.create({
   verifText: {
     fontSize: 12,
     color: COLORS.textPrimary,
+    flex: 1,
   },
   modalActionRow: {
-    flexDirection: 'column',
-    gap: 8,
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
     marginBottom: 16,
   },
   modalApproveBtn: {
+    flex: 1,
     backgroundColor: COLORS.success,
-    paddingVertical: 10,
-    borderRadius: 0,
+    paddingVertical: 12,
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
   },
   modalApproveText: {
     color: '#FFFFFF',
-    fontWeight: '700',
     fontSize: 13,
+    fontWeight: '700',
   },
   modalRejectBtn: {
+    flex: 1,
     backgroundColor: COLORS.warning,
-    paddingVertical: 10,
-    borderRadius: 0,
+    paddingVertical: 12,
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
   },
   modalRejectText: {
     color: '#FFFFFF',
-    fontWeight: '700',
     fontSize: 13,
+    fontWeight: '700',
   },
   modalCloseBtn: {
-    backgroundColor: '#E2E8F0',
-    paddingVertical: 10,
-    borderRadius: 0,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   modalCloseBtnText: {
-    color: COLORS.textPrimary,
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '700',
+  },
+  noticeModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    marginTop: 12,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  noticeModalMessage: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  confirmHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  confirmBanner: {
+    backgroundColor: '#F8FAFC',
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 16,
+  },
+  confirmQuestionText: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  confirmSummaryBox: {
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 6,
+  },
+  confirmSummaryRow: {
     fontSize: 13,
   },
+  confirmSummaryLabel: {
+    color: COLORS.textSecondary,
+  },
+  confirmSummaryVal: {
+    color: COLORS.textPrimary,
+    fontWeight: '600',
+  },
+  confirmSummaryValBold: {
+    color: COLORS.primary,
+    fontWeight: '800',
+  },
+  reasonInputBox: {
+    marginBottom: 16,
+  },
+  reasonInputLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.warning,
+    marginBottom: 6,
+  },
+  reasonTextInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: COLORS.textPrimary,
+  },
+  confirmActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  confirmFinalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  confirmFinalBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  confirmCancelBtn: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmCancelBtnText: {
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
   spacer: {
-    height: 40,
+    height: 32,
   },
 });

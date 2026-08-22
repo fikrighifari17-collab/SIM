@@ -11,6 +11,7 @@ import AboutScreen from './screens/AboutScreen';
 import ServiceDetailScreen from './screens/ServiceDetailScreen';
 import LoginScreen from './screens/LoginScreen';
 import AdminDashboardScreen from './screens/AdminDashboardScreen';
+import PaymentScreen from './screens/PaymentScreen';
 
 const DEFAULT_SUBMISSIONS = [
   {
@@ -207,6 +208,13 @@ export default function App() {
         );
       case 'services':
         return <ServicesScreen onSelectService={handleOpenService} />;
+      case 'payment':
+        return (
+          <PaymentScreen
+            submissions={submissions}
+            onUpdateStatus={handleUpdateStatus}
+          />
+        );
       case 'faq':
         return <FAQScreen />;
       case 'about':
@@ -246,15 +254,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     ...Platform.select({
       web: {
-        height: '100vh',
-        maxHeight: '100vh',
-        overflow: 'hidden',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
       },
     }),
   },
   mainContent: {
     flex: 1,
-    height: '100%',
-    overflow: 'auto',
+    width: '100%',
   },
 });

@@ -5,6 +5,7 @@ import {
   View,
   ScrollView,
   Pressable,
+  TextInput,
   Modal,
   Platform,
 } from 'react-native';
@@ -234,6 +235,8 @@ export default function HomeScreen({ onSelectService, onNavigateToTab }) {
           />
         </View>
       </View>
+
+
 
       {/* Keunggulan Utama Header */}
       <View style={styles.sectionHeaderMargin}>
@@ -774,5 +777,266 @@ export default function HomeScreen({ onSelectService, onNavigateToTab }) {
   },
   spacer: {
     height: 40,
+  },
+  trackCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+  },
+  trackInputRow: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  trackInput: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.textPrimary,
+  },
+  trackSubmissionsList: {
+    gap: 12,
+  },
+  trackItemCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 14,
+    borderRadius: 0,
+    gap: 8,
+  },
+  trackItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  trackItemTitleCol: {
+    flex: 1,
+  },
+  trackResiText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  trackNameText: {
+    fontSize: 13,
+    color: COLORS.textPrimary,
+    marginTop: 2,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 0,
+  },
+  statusPaidBadge: {
+    backgroundColor: '#DCFCE7',
+  },
+  statusPaidBadgeText: {
+    color: COLORS.success,
+    fontWeight: '800',
+    fontSize: 11,
+  },
+  statusApprovedBadge: {
+    backgroundColor: '#DBEAFE',
+  },
+  statusApprovedBadgeText: {
+    color: COLORS.accent,
+    fontWeight: '800',
+    fontSize: 11,
+  },
+  statusPendingBadge: {
+    backgroundColor: '#FEF3C7',
+  },
+  statusPendingBadgeText: {
+    color: '#D97706',
+    fontWeight: '800',
+    fontSize: 11,
+  },
+  statusRejectedBadge: {
+    backgroundColor: '#FEE2E2',
+  },
+  statusRejectedBadgeText: {
+    color: COLORS.warning,
+    fontWeight: '800',
+    fontSize: 11,
+  },
+  trackDetailText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  payNowBtn: {
+    backgroundColor: COLORS.success,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 6,
+  },
+  payNowBtnPressed: {
+    backgroundColor: '#15803D',
+  },
+  payNowBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  pendingNoticeBox: {
+    backgroundColor: '#FEFCE8',
+    borderWidth: 1,
+    borderColor: '#EAB308',
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  pendingNoticeText: {
+    fontSize: 12,
+    color: '#854D0E',
+    flex: 1,
+  },
+  paidNoticeBox: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: COLORS.success,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  paidNoticeText: {
+    fontSize: 12,
+    color: COLORS.success,
+    fontWeight: '600',
+    flex: 1,
+  },
+  paymentSummaryBox: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+    marginBottom: 16,
+    gap: 8,
+  },
+  paymentSummaryTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.primary,
+    letterSpacing: 0.8,
+    marginBottom: 4,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+  },
+  summaryVal: {
+    fontSize: 13,
+    color: COLORS.textPrimary,
+    fontWeight: '600',
+  },
+  summaryValBold: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '800',
+  },
+  summaryTotalRow: {
+    marginTop: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  summaryTotalLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  summaryTotalVal: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: COLORS.success,
+  },
+  paymentMethodTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.primary,
+    marginBottom: 10,
+    letterSpacing: 0.5,
+  },
+  methodItem: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  methodItemActive: {
+    backgroundColor: '#F0F9FF',
+    borderColor: COLORS.primary,
+    borderWidth: 2,
+  },
+  methodName: {
+    fontSize: 13,
+    color: COLORS.textPrimary,
+    flex: 1,
+    marginLeft: 10,
+  },
+  methodNameActive: {
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  confirmPayBtn: {
+    backgroundColor: COLORS.success,
+    paddingVertical: 14,
+    borderRadius: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  confirmPayBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  paySuccessTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  paySuccessDesc: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
   },
 });

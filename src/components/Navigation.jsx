@@ -7,6 +7,7 @@ export default function Navigation({ activeTab, setActiveTab }) {
   const tabs = [
     { id: 'home', label: 'Beranda', icon: 'home-outline', iconActive: 'home' },
     { id: 'services', label: 'Layanan SIM', icon: 'card-outline', iconActive: 'card' },
+    { id: 'payment', label: 'Pembayaran', icon: 'wallet-outline', iconActive: 'wallet' },
     { id: 'faq', label: 'FAQ', icon: 'help-circle-outline', iconActive: 'help-circle' },
     { id: 'about', label: 'Digital ID', icon: 'id-card-outline', iconActive: 'id-card' },
   ];
