@@ -7,6 +7,8 @@ import {
   Pressable,
   Modal,
   TextInput,
+  Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../colors';
