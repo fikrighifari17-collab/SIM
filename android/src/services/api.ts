@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 // Ganti dengan IP laptop kamu saat dev (cek dengan ipconfig)
 // Contoh: 'http://192.168.1.5:5000/api'
 const BASE_URL = __DEV__
-  ? 'http://192.168.1.92:5000/api'
+  ? 'http://192.168.100.13:5000/api'
   : 'https://your-production-api.com/api';
 
 const api = axios.create({

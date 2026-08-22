@@ -85,9 +85,7 @@ export default function LoginScreen({ onLoginSuccess }) {
       return;
     }
 
-    // 3. Fallback invalid credentials
-    const msg =
-      'Email atau Password salah.\n\nGunakan Credential Demo Prototype:\n• Customer: budi@example.com | user123\n• Admin: admin@example.com | admin123\n\natau klik "Daftar Akun Baru".';
+    const msg = 'Email atau Password salah. Silakan periksa kembali atau klik "Daftar Akun Baru".';
     if (Platform.OS === 'web') alert(msg);
     else Alert.alert('Login Gagal', msg);
   };
@@ -199,58 +197,46 @@ export default function LoginScreen({ onLoginSuccess }) {
             {authView === 'login' ? (
               /* 1. Unified Login Form (Customer & Admin in Same Screen) */
               <View style={styles.formBody}>
-                <Text style={styles.formTitle}>Masuk ke Aplikasi JEJAK SIM</Text>
-                <Text style={styles.formSubtitle}>
-                  Masukkan Alamat Gmail/Email dan Password Anda untuk masuk ke sistem.
-                </Text>
+                <View style={styles.formTopGroup}>
+                  <Text style={styles.formTitle}>Masuk ke Aplikasi JEJAK SIM</Text>
+                  <Text style={styles.formSubtitle}>
+                    Masukkan Alamat Gmail/Email dan Password Anda untuk masuk ke sistem.
+                  </Text>
 
-                {/* Credential Demo Info Box */}
-                <View style={styles.credentialInfoBox}>
-                  <Ionicons name="key-outline" size={18} color={COLORS.primary} />
-                  <View style={styles.credTextCol}>
-                    <Text style={styles.credTitle}>Informasi Credential Login Demo:</Text>
-                    <Text style={styles.credText}>
-                      Customer: <Text style={styles.credBold}>budi@example.com</Text> | Pass: <Text style={styles.credBold}>user123</Text>
-                    </Text>
-                    <Text style={styles.credText}>
-                      Admin: <Text style={styles.credBold}>admin@example.com</Text> | Pass: <Text style={styles.credBold}>admin123</Text>
-                    </Text>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Alamat Email / Username</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Masukkan alamat email Anda..."
+                      value={emailInput}
+                      onChangeText={setEmailInput}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
                   </View>
-                </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Alamat Email / Username</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Masukkan email (contoh: budi@example.com atau admin)..."
-                    value={emailInput}
-                    onChangeText={setEmailInput}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                </View>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Password</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Masukkan password Anda..."
+                      value={passwordInput}
+                      onChangeText={setPasswordInput}
+                      secureTextEntry={true}
+                    />
+                  </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Password</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Masukkan password Anda..."
-                    value={passwordInput}
-                    onChangeText={setPasswordInput}
-                    secureTextEntry={true}
-                  />
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.submitBtn,
+                      pressed && styles.submitBtnPressed,
+                    ]}
+                    onPress={handleLogin}
+                  >
+                    <Text style={styles.submitBtnText}>Masuk Sekarang</Text>
+                    <Ionicons name="log-in-outline" size={18} color="#FFFFFF" />
+                  </Pressable>
                 </View>
-
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.submitBtn,
-                    pressed && styles.submitBtnPressed,
-                  ]}
-                  onPress={handleLogin}
-                >
-                  <Text style={styles.submitBtnText}>Masuk Sekarang</Text>
-                  <Ionicons name="log-in-outline" size={18} color="#FFFFFF" />
-                </Pressable>
 
                 {/* Bottom Link for Registration */}
                 <View style={styles.switchAuthRow}>
@@ -263,77 +249,79 @@ export default function LoginScreen({ onLoginSuccess }) {
             ) : (
               /* 2. Register Form for New Customer Accounts */
               <View style={styles.formBody}>
-                <Text style={styles.formTitle}>Daftar Akun Baru JEJAK SIM</Text>
-                <Text style={styles.formSubtitle}>
-                  Lengkapi data identitas KTP dan Email Anda untuk mendaftarkan akun pemohon SIM baru.
-                </Text>
+                <View style={styles.formTopGroup}>
+                  <Text style={styles.formTitle}>Daftar Akun Baru JEJAK SIM</Text>
+                  <Text style={styles.formSubtitle}>
+                    Lengkapi data identitas KTP dan Email Anda untuk mendaftarkan akun pemohon SIM baru.
+                  </Text>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Nama Lengkap (Sesuai KTP)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Contoh: Budi Santoso"
-                    value={regNama}
-                    onChangeText={setRegNama}
-                  />
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Nama Lengkap (Sesuai KTP)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Contoh: Budi Santoso"
+                      value={regNama}
+                      onChangeText={setRegNama}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Nomor Induk Kependudukan (NIK 16 Digit)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="3174052208xxxxxx"
+                      value={regNik}
+                      onChangeText={setRegNik}
+                      keyboardType="numeric"
+                      maxLength={16}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Nomor Handphone (Aktif)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="0800xxxxxxxx"
+                      value={regPhone}
+                      onChangeText={setRegPhone}
+                      keyboardType="phone-pad"
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Alamat Email Active</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="nama@example.com"
+                      value={regEmail}
+                      onChangeText={setRegEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Buat Password Akun Baru</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Buat password unik..."
+                      value={regPassword}
+                      onChangeText={setRegPassword}
+                      secureTextEntry={true}
+                    />
+                  </View>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.submitBtn,
+                      pressed && styles.submitBtnPressed,
+                    ]}
+                    onPress={handleRegister}
+                  >
+                    <Text style={styles.submitBtnText}>Daftar Akun Baru</Text>
+                    <Ionicons name="person-add-outline" size={18} color="#FFFFFF" />
+                  </Pressable>
                 </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Nomor Induk Kependudukan (NIK 16 Digit)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="3174052208xxxxxx"
-                    value={regNik}
-                    onChangeText={setRegNik}
-                    keyboardType="numeric"
-                    maxLength={16}
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Nomor Handphone (Aktif)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="0800xxxxxxxx"
-                    value={regPhone}
-                    onChangeText={setRegPhone}
-                    keyboardType="phone-pad"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Alamat Email Active</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="nama@example.com"
-                    value={regEmail}
-                    onChangeText={setRegEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Buat Password Akun Baru</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Buat password unik..."
-                    value={regPassword}
-                    onChangeText={setRegPassword}
-                    secureTextEntry={true}
-                  />
-                </View>
-
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.submitBtn,
-                    pressed && styles.submitBtnPressed,
-                  ]}
-                  onPress={handleRegister}
-                >
-                  <Text style={styles.submitBtnText}>Daftar Akun Baru</Text>
-                  <Ionicons name="person-add-outline" size={18} color="#FFFFFF" />
-                </Pressable>
 
                 {/* Bottom Link back to Login */}
                 <View style={styles.switchAuthRow}>
@@ -381,11 +369,10 @@ const styles = StyleSheet.create({
   },
   explanationCard: {
     backgroundColor: COLORS.primary,
-    padding: 16,
+    padding: 24,
     borderRadius: 0,
     borderWidth: 1,
     borderColor: COLORS.navyMuted,
-    height: '100%',
     justifyContent: 'space-between',
   },
   badgeRow: {
@@ -477,36 +464,38 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     borderWidth: 1,
     borderColor: COLORS.border,
-    overflow: 'hidden',
+    padding: 24,
     height: '100%',
     flex: 1,
   },
   formBody: {
-    padding: 16,
     flex: 1,
     justifyContent: 'space-between',
   },
+  formTopGroup: {
+    gap: 8,
+  },
   formTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '800',
     color: COLORS.textPrimary,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   formSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.textSecondary,
-    marginBottom: 10,
-    lineHeight: 16,
+    marginBottom: 8,
+    lineHeight: 18,
   },
   credentialInfoBox: {
     backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: COLORS.navyMuted,
-    padding: 10,
+    padding: 8,
     borderRadius: 0,
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 10,
+    marginBottom: 8,
     alignItems: 'flex-start',
   },
   credTextCol: {
@@ -528,11 +517,11 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   inputGroup: {
-    marginBottom: 8,
+    marginBottom: 4,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: COLORS.textPrimary,
     marginBottom: 4,
   },
@@ -541,27 +530,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
     color: COLORS.textPrimary,
   },
   submitBtn: {
     backgroundColor: COLORS.primary,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 6,
+    marginTop: 8,
   },
   submitBtnPressed: {
     backgroundColor: COLORS.navySoft,
   },
   submitBtnText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
   },
   switchAuthRow: {
