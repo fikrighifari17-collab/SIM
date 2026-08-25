@@ -38,22 +38,26 @@ export default function LivenessCheckScreen() {
       setInstruction('Wajah terdeteksi — tetap diam sebentar...');
       timerRef.current = setTimeout(() => {
         setStep('blink');
-        setInstruction('Kedipkan mata pelan-pelan');
-      }, 2000);
+        setInstruction('Kedipkan mata pelan-pelan atau tekan tombol verifikasi di bawah');
+      }, 1500);
     }
 
-    if (step === 'blink' && face.leftEyeOpenProbability !== undefined) {
-      const leftClosed = face.leftEyeOpenProbability < 0.3;
-      const rightClosed = (face.rightEyeOpenProbability ?? 1) < 0.3;
-      if (leftClosed && rightClosed) {
-        if (timerRef.current) clearTimeout(timerRef.current);
-        setStep('done');
-        setInstruction('Verifikasi berhasil!');
-        timerRef.current = setTimeout(() => {
-          route.params.onSuccess();
-        }, 1000);
+    if (step === 'blink') {
+      const leftClosed = face.leftEyeOpenProbability !== undefined ? face.leftEyeOpenProbability < 0.35 : false;
+      const rightClosed = face.rightEyeOpenProbability !== undefined ? face.rightEyeOpenProbability < 0.35 : false;
+      if (leftClosed || rightClosed) {
+        completeVerification();
       }
     }
+  };
+
+  const completeVerification = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setStep('done');
+    setInstruction('Verifikasi Berhasil!');
+    timerRef.current = setTimeout(() => {
+      route.params.onSuccess();
+    }, 1000);
   };
 
   const reset = () => {
@@ -125,6 +129,13 @@ export default function LivenessCheckScreen() {
             <Text style={[styles.instructionText, { color: overlayColor }]}>{instruction}</Text>
           </View>
 
+          {step !== 'done' && (
+            <TouchableOpacity style={styles.verifyManualBtn} onPress={completeVerification}>
+              <Ionicons name="scan" size={18} color={COLORS.surface} />
+              <Text style={styles.verifyManualText}>Ambil & Verifikasi Wajah</Text>
+            </TouchableOpacity>
+          )}
+
           {(step === 'idle' || step === 'fail') && (
             <TouchableOpacity style={styles.resetBtn} onPress={reset}>
               <Text style={styles.resetBtnText}>Coba Lagi</Text>
@@ -160,6 +171,11 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderRadius: 0,
   },
   instructionText: { fontSize: 14, fontWeight: '700' },
+  verifyManualBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: COLORS.accent, paddingVertical: 14, paddingHorizontal: 28, marginTop: 4,
+  },
+  verifyManualText: { color: COLORS.surface, fontWeight: '800', fontSize: 14 },
   resetBtn: { backgroundColor: COLORS.surface, paddingVertical: 12, paddingHorizontal: 32 },
   resetBtnText: { color: COLORS.primary, fontWeight: '800', fontSize: 14 },
 });

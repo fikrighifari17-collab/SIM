@@ -26,23 +26,37 @@ export default function PaymentScreen() {
   const { resi_id, amount } = route.params;
   const [copied, setCopied] = useState(false);
 
+  const resiNum = String(resi_id || '').replace(/\D/g, '') || '7866';
+  const vaNumber = `8008-3271-${resiNum.slice(-4).padStart(4, '0')}-9812`;
+
   const copyVA = () => {
-    Clipboard.setString(VA_NUMBER.replace(/-/g, ''));
+    Clipboard.setString(vaNumber.replace(/-/g, ''));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDone = () => {
+  const handleSimulatePayment = () => {
     Alert.alert(
-      'Pengajuan Terkirim',
-      `Pengajuan kamu dengan resi #${resi_id} telah dikirim. Silakan selesaikan pembayaran dan pantau status di tab Status.`,
-      [{ text: 'OK', onPress: () => navigation.navigate('ServicesList') }]
+      'Pembayaran Berhasil! 🎉',
+      `Tagihan PNBP sebesar Rp ${amount?.toLocaleString('id-ID') ?? '135.000'} dengan nomor Virtual Account ${vaNumber} telah LUNAS terbayar.`,
+      [
+        {
+          text: 'Lihat Status Pengajuan',
+          onPress: () => {
+            navigation.navigate('Main', { screen: 'Status' });
+          },
+        },
+      ]
     );
+  };
+
+  const handleDone = () => {
+    navigation.navigate('Main', { screen: 'Status' });
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
 
         {/* Status */}
         <View style={styles.statusBanner}>
@@ -62,7 +76,7 @@ export default function PaymentScreen() {
           </View>
 
           <View style={styles.vaNumberBox}>
-            <Text style={styles.vaNumber}>{VA_NUMBER}</Text>
+            <Text style={styles.vaNumber}>{vaNumber}</Text>
             <TouchableOpacity style={styles.copyBtn} onPress={copyVA}>
               <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={18} color={copied ? COLORS.success : COLORS.accent} />
               <Text style={[styles.copyText, copied && { color: COLORS.success }]}>
@@ -74,7 +88,7 @@ export default function PaymentScreen() {
           <View style={styles.amountRow}>
             <Text style={styles.amountLabel}>Total Pembayaran</Text>
             <Text style={styles.amountValue}>
-              Rp {amount?.toLocaleString('id-ID') ?? '—'}
+              Rp {amount?.toLocaleString('id-ID') ?? '135.000'}
             </Text>
           </View>
 
@@ -88,7 +102,7 @@ export default function PaymentScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionBar} />
-            <Text style={styles.sectionTitle}>CARA PEMBAYARAN</Text>
+            <Text style={styles.sectionTitle}>CARA PEMBAYARAN M-BANKING</Text>
           </View>
           {PAYMENT_STEPS.map((step, i) => (
             <View key={i} style={styles.stepRow}>
@@ -113,6 +127,11 @@ export default function PaymentScreen() {
       </ScrollView>
 
       <View style={styles.cta}>
+        <TouchableOpacity style={styles.paySimulateBtn} onPress={handleSimulatePayment}>
+          <Ionicons name="card" size={18} color={COLORS.surface} />
+          <Text style={styles.paySimulateText}>Bayar Sekarang (Simulasi Lunas)</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.ctaBtn} onPress={handleDone}>
           <Text style={styles.ctaBtnText}>Pantau Status Pengajuan</Text>
           <Ionicons name="arrow-forward" size={18} color={COLORS.surface} />
@@ -152,7 +171,9 @@ const styles = StyleSheet.create({
   stepText: { fontSize: 13, color: COLORS.textPrimary, flex: 1, lineHeight: 20, paddingTop: 2 },
   refundBox: { flexDirection: 'row', gap: 8, backgroundColor: COLORS.cardHover, padding: 14, borderWidth: 1, borderColor: COLORS.border, alignItems: 'flex-start' },
   refundText: { flex: 1, fontSize: 11, color: COLORS.textSecondary, lineHeight: 17 },
-  cta: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: COLORS.surface, borderTopWidth: 1, borderTopColor: COLORS.border },
-  ctaBtn: { backgroundColor: COLORS.primary, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, paddingVertical: 15 },
-  ctaBtnText: { color: COLORS.surface, fontWeight: '800', fontSize: 15 },
+  cta: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: COLORS.surface, borderTopWidth: 1, borderTopColor: COLORS.border, gap: 10 },
+  paySimulateBtn: { backgroundColor: COLORS.success, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, paddingVertical: 14 },
+  paySimulateText: { color: COLORS.surface, fontWeight: '800', fontSize: 14 },
+  ctaBtn: { backgroundColor: COLORS.primary, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, paddingVertical: 14 },
+  ctaBtnText: { color: COLORS.surface, fontWeight: '800', fontSize: 14 },
 });

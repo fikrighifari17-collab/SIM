@@ -20,9 +20,12 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 -- Data Akun Bawaan (Demo)
 INSERT INTO `users` (`email`, `password`, `role`, `name`, `nik`, `no_hp`) VALUES
+('satria@gmail.com', 'user123', 'customer', 'Satria', '3174052208900002', '081298765432'),
 ('budi@gmail.com', 'user123', 'customer', 'Budi Santoso', '3174052208900001', '081298765432'),
+('raka@gmail.com', 'user123', 'customer', 'Raka Pratama', '9213917237217321', '085712345678'),
+('dedi@gmail.com', 'user123', 'customer', 'Dedi Kurniawan', '3174052208900009', '081398765432'),
 ('admin@jejaksim.polri.go.id', 'admin123', 'admin', 'Petugas SATPAS Presisi', '3174000000000001', '081100009999')
-ON DUPLICATE KEY UPDATE `id`=`id`;
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `nik`=VALUES(`nik`), `no_hp`=VALUES(`no_hp`);
 
 -- 2. TABEL SUBMISSIONS (PENGAJUAN SIM ONLINE)
 CREATE TABLE IF NOT EXISTS `submissions` (
@@ -41,9 +44,11 @@ CREATE TABLE IF NOT EXISTS `submissions` (
 
 -- Data Dummy Pengajuan
 INSERT INTO `submissions` (`resi_id`, `user_email`, `nama`, `nik`, `no_hp`, `jenis_sim`, `satpas`, `service_title`, `status`) VALUES
-('SIM-2026-0822-889', 'budi@gmail.com', 'Budi Santoso', '3174052208900001', '081298765432', 'SIM A', 'SATPAS 1221 Daan Mogot, Jakarta Barat (Polda Metro Jaya)', 'Perpanjangan SIM Nasional', 'Pending'),
-('SIM-2026-0822-412', 'raka@gmail.com', 'Raka Pratama', '9213917237217321', '085712345678', 'SIM Internasional', 'SATPAS 1221 Daan Mogot, Jakarta Barat (Polda Metro Jaya)', 'Pendaftaran SIM Internasional', 'Approved')
-ON DUPLICATE KEY UPDATE `id`=`id`;
+('SIM-2026-8786', 'satria@gmail.com', 'Satria', '3174052208900002', '081298765432', 'SIM C', 'SATPAS Polres Metro Jakarta Timur', 'Pendaftaran SIM Baru', 'Pending'),
+('SIM-2026-7866', 'budi@gmail.com', 'Budi Santoso', '3174052208900001', '081298765432', 'SIM A', 'SATPAS Polres Metro Jakarta Selatan', 'Perpanjangan SIM Nasional', 'Pending'),
+('SIM-2026-0822-412', 'raka@gmail.com', 'Raka Pratama', '9213917237217321', '085712345678', 'SIM Internasional', 'SATPAS 1221 Daan Mogot, Jakarta Barat (Polda Metro Jaya)', 'Pendaftaran SIM Internasional', 'Approved'),
+('SIM-2026-0822-889', 'dedi@gmail.com', 'Dedi Kurniawan', '3174052208900009', '081398765432', 'SIM A', 'SATPAS 1221 Daan Mogot, Jakarta Barat (Polda Metro Jaya)', 'Perpanjangan SIM Nasional', 'Rejected')
+ON DUPLICATE KEY UPDATE `status`=VALUES(`status`), `nama`=VALUES(`nama`), `nik`=VALUES(`nik`);
 
 -- 3. TABEL SATPAS LOCATIONS
 CREATE TABLE IF NOT EXISTS `satpas_locations` (

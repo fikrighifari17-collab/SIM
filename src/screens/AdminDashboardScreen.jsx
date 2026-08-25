@@ -131,50 +131,85 @@ export default function AdminDashboardScreen({
 
   // Compute Statistics
   const totalCount = submissions.length;
-  const pendingCount = submissions.filter((s) => s.status === 'Pending').length;
-  const approvedCount = submissions.filter((s) => s.status === 'Disetujui').length;
-  const rejectedCount = submissions.filter((s) => s.status === 'Ditolak').length;
+  const pendingCount = submissions.filter((s) => s.status === 'Pending' || s.status === 'Menunggu Verifikasi').length;
+  const approvedCount = submissions.filter((s) => s.status === 'Disetujui' || s.status === 'Approved' || s.status === 'Disetujui & Cetak').length;
+  const rejectedCount = submissions.filter((s) => s.status === 'Ditolak' || s.status === 'Rejected').length;
 
   // Filtered submissions for Verification View
   const filteredSubmissions = submissions.filter((item) => {
-    const q = searchQuery.toLowerCase();
-    const matchesSearch =
-      item.nama.toLowerCase().includes(q) ||
-      item.nik.toLowerCase().includes(q) ||
-      item.resiId.toLowerCase().includes(q) ||
-      item.serviceTitle.toLowerCase().includes(q) ||
-      (item.jenisSim && item.jenisSim.toLowerCase().includes(q));
+    try {
+      const q = (searchQuery || '').toLowerCase().trim();
+      const nama = (item.nama || '').toLowerCase();
+      const nik = (item.nik || '').toLowerCase();
+      const resiId = (item.resiId || item.resi_id || '').toLowerCase();
+      const serviceTitle = (item.serviceTitle || item.service_title || '').toLowerCase();
+      const jenisSim = (item.jenisSim || item.jenis_sim || '').toLowerCase();
 
-    const matchesSim =
-      simFilter === 'Semua' ||
-      (item.jenisSim && item.jenisSim.toLowerCase() === simFilter.toLowerCase());
+      const matchesSearch =
+        !q ||
+        nama.includes(q) ||
+        nik.includes(q) ||
+        resiId.includes(q) ||
+        serviceTitle.includes(q) ||
+        jenisSim.includes(q);
 
-    const matchesStatus =
-      statusFilter === 'Semua' || item.status === statusFilter;
+      const matchesSim =
+        simFilter === 'Semua' ||
+        (jenisSim && (
+          jenisSim === simFilter.toLowerCase() ||
+          jenisSim.includes(simFilter.toLowerCase())
+        ));
 
-    return matchesSearch && matchesSim && matchesStatus;
+      let matchesStatus = false;
+      if (statusFilter === 'Semua' || !statusFilter) {
+        matchesStatus = true;
+      } else if (statusFilter === 'Pending') {
+        matchesStatus = item.status === 'Pending' || item.status === 'Menunggu Verifikasi';
+      } else if (statusFilter === 'Disetujui' || statusFilter === 'Approved') {
+        matchesStatus = item.status === 'Disetujui' || item.status === 'Approved' || item.status === 'Disetujui & Cetak';
+      } else if (statusFilter === 'Ditolak' || statusFilter === 'Rejected') {
+        matchesStatus = item.status === 'Ditolak' || item.status === 'Rejected';
+      } else {
+        matchesStatus = item.status === statusFilter;
+      }
+
+      return matchesSearch && matchesSim && matchesStatus;
+    } catch (e) {
+      return false;
+    }
   });
 
   // Filtered submissions for Payment View
   const filteredPayments = submissions.filter((item) => {
-    const q = searchQuery.toLowerCase();
-    const matchesSearch =
-      item.nama.toLowerCase().includes(q) ||
-      item.nik.toLowerCase().includes(q) ||
-      item.resiId.toLowerCase().includes(q) ||
-      item.serviceTitle.toLowerCase().includes(q) ||
-      (item.jenisSim && item.jenisSim.toLowerCase().includes(q));
+    try {
+      const q = (searchQuery || '').toLowerCase().trim();
+      const nama = (item.nama || '').toLowerCase();
+      const nik = (item.nik || '').toLowerCase();
+      const resiId = (item.resiId || item.resi_id || '').toLowerCase();
+      const serviceTitle = (item.serviceTitle || item.service_title || '').toLowerCase();
+      const jenisSim = (item.jenisSim || item.jenis_sim || '').toLowerCase();
 
-    let matchesPaymentStatus = true;
-    if (paymentStatusFilter === 'Lunas') {
-      matchesPaymentStatus = item.status === 'Lunas' || item.status === 'Disetujui & Cetak';
-    } else if (paymentStatusFilter === 'Pending') {
-      matchesPaymentStatus = item.status === 'Pending';
-    } else if (paymentStatusFilter === 'Gagal') {
-      matchesPaymentStatus = item.status === 'Ditolak';
+      const matchesSearch =
+        !q ||
+        nama.includes(q) ||
+        nik.includes(q) ||
+        resiId.includes(q) ||
+        serviceTitle.includes(q) ||
+        jenisSim.includes(q);
+
+      let matchesPaymentStatus = true;
+      if (paymentStatusFilter === 'Lunas') {
+        matchesPaymentStatus = item.status === 'Lunas' || item.status === 'Disetujui & Cetak' || item.status === 'Approved';
+      } else if (paymentStatusFilter === 'Pending') {
+        matchesPaymentStatus = item.status === 'Pending';
+      } else if (paymentStatusFilter === 'Gagal') {
+        matchesPaymentStatus = item.status === 'Ditolak' || item.status === 'Rejected';
+      }
+
+      return matchesSearch && matchesPaymentStatus;
+    } catch (e) {
+      return false;
     }
-
-    return matchesSearch && matchesPaymentStatus;
   });
 
   const handleTriggerConfirm = (item, action) => {
@@ -480,7 +515,11 @@ export default function AdminDashboardScreen({
                   const isActive = simFilter === simType;
                   const count = simType === 'Semua'
                     ? submissions.length
-                    : submissions.filter(s => s.jenisSim && s.jenisSim.toLowerCase() === simType.toLowerCase()).length;
+                    : submissions.filter(s => {
+                        const sType = (s.jenisSim || s.jenis_sim || '').toLowerCase();
+                        const target = simType.toLowerCase();
+                        return sType && (sType === target || sType.includes(target));
+                      }).length;
 
                   return (
                     <Pressable
@@ -509,42 +548,54 @@ export default function AdminDashboardScreen({
           {/* Applications List Table */}
           <View style={styles.tableCard}>
             {filteredSubmissions.length > 0 ? (
-              filteredSubmissions.map((item) => (
-                <View key={item.id} style={styles.tableRow}>
-                  {/* Row Left Data */}
-                  <View style={styles.rowMainCol}>
-                    <View style={styles.rowTitleRow}>
-                      <Text style={styles.resiIdText}>{item.resiId}</Text>
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          item.status === 'Disetujui' && styles.statusApproved,
-                          item.status === 'Ditolak' && styles.statusRejected,
-                          item.status === 'Pending' && styles.statusPending,
-                        ]}
-                      >
-                        <Text
+              filteredSubmissions.map((item, idx) => {
+                const resiStr = item.resiId || item.resi_id || `SIM-${item.id || idx}`;
+                const noHpStr = item.noHp || item.no_hp || '-';
+                const titleStr = item.serviceTitle || item.service_title || 'Pengajuan SIM';
+                const simStr = item.jenisSim || item.jenis_sim || 'A';
+
+                return (
+                  <View key={item.resiId || item.resi_id || `${item.id}-${idx}`} style={styles.tableRow}>
+                    {/* Row Left Data */}
+                    <View style={styles.rowMainCol}>
+                      <View style={styles.rowTitleRow}>
+                        <Text style={styles.resiIdText}>{resiStr}</Text>
+                        <View
                           style={[
-                            styles.statusBadgeText,
-                            item.status === 'Disetujui' && styles.statusApprovedText,
-                            item.status === 'Ditolak' && styles.statusRejectedText,
-                            item.status === 'Pending' && styles.statusPendingText,
+                            styles.statusBadge,
+                            (item.status === 'Disetujui' || item.status === 'Approved') && styles.statusApproved,
+                            (item.status === 'Ditolak' || item.status === 'Rejected') && styles.statusRejected,
+                            item.status === 'Pending' && styles.statusPending,
                           ]}
                         >
-                          {item.status === 'Pending' ? 'Menunggu Verifikasi' : item.status}
-                        </Text>
+                          <Text
+                            style={[
+                              styles.statusBadgeText,
+                              (item.status === 'Disetujui' || item.status === 'Approved') && styles.statusApprovedText,
+                              (item.status === 'Ditolak' || item.status === 'Rejected') && styles.statusRejectedText,
+                              item.status === 'Pending' && styles.statusPendingText,
+                            ]}
+                          >
+                            {item.status === 'Pending'
+                              ? 'Menunggu Verifikasi'
+                              : item.status === 'Approved'
+                              ? 'Disetujui & Cetak'
+                              : item.status === 'Rejected'
+                              ? 'Ditolak'
+                              : item.status}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
 
-                    <Text style={styles.applicantNameText}>{item.nama}</Text>
-                    <Text style={styles.applicantDetailsText}>
-                      NIK: {item.nik} | No HP: {item.noHp}
-                    </Text>
-                    <Text style={styles.serviceTypeText}>
-                      Layanan: <Text style={{ fontWeight: '700' }}>{item.serviceTitle}</Text> ({item.jenisSim})
-                    </Text>
-                    <Text style={styles.satpasText}>SATPAS: {item.satpas} | Tgl: {item.date}</Text>
-                  </View>
+                      <Text style={styles.applicantNameText}>{item.nama}</Text>
+                      <Text style={styles.applicantDetailsText}>
+                        NIK: {item.nik} | No HP: {noHpStr}
+                      </Text>
+                      <Text style={styles.serviceTypeText}>
+                        Layanan: <Text style={{ fontWeight: '700' }}>{titleStr}</Text> ({simStr})
+                      </Text>
+                      <Text style={styles.satpasText}>SATPAS: {item.satpas} | Tgl: {item.date}</Text>
+                    </View>
 
                   {/* Row Action Buttons */}
                   <View style={styles.rowActionsCol}>
@@ -577,7 +628,8 @@ export default function AdminDashboardScreen({
                     )}
                   </View>
                 </View>
-              ))
+              );
+            })
             ) : (
               <View style={styles.emptyRow}>
                 <Ionicons name="documents-outline" size={32} color={COLORS.textSecondary} />
@@ -1122,7 +1174,7 @@ export default function AdminDashboardScreen({
                   </View>
                 </View>
 
-                {selectedApplicant.status === 'Pending' && (
+                {(selectedApplicant.status === 'Pending' || selectedApplicant.status === 'Menunggu Verifikasi' || !selectedApplicant.status || selectedApplicant.status !== 'Disetujui') && (
                   <View style={styles.modalActionRow}>
                     <Pressable
                       style={styles.modalApproveBtn}
@@ -1266,7 +1318,8 @@ export default function AdminDashboardScreen({
                       },
                     ]}
                     onPress={() => {
-                      onUpdateStatus(confirmModal.item.id, confirmModal.action);
+                      const targetId = confirmModal.item.resiId || confirmModal.item.resi_id || confirmModal.item.id;
+                      onUpdateStatus(targetId, confirmModal.action);
                       setConfirmModal({ visible: false, item: null, action: '', reason: '' });
                       if (selectedApplicant) setSelectedApplicant(null);
                     }}

@@ -4,12 +4,12 @@ import * as SecureStore from 'expo-secure-store';
 // Ganti dengan IP laptop kamu saat dev (cek dengan ipconfig)
 // Contoh: 'http://192.168.1.5:5000/api'
 const BASE_URL = __DEV__
-  ? 'http://192.168.100.13:5000/api'
+  ? 'http://192.168.1.58:5000/api'
   : 'https://your-production-api.com/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: 3000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -33,11 +33,9 @@ export const authAPI = {
 // Submissions — field backend: resiId, noHp, jenisSim, serviceTitle
 export const submissionAPI = {
   getAll: () => api.get('/submissions'),
+  getMySubmissions: () => api.get('/submissions'),
 
-  create: (data: {
-    resiId: string; nama: string; nik: string; noHp: string;
-    email: string; jenisSim: string; satpas: string; serviceTitle: string;
-  }) => api.post('/submissions', data),
+  create: (data: any) => api.post('/submissions', data),
 
   updateStatus: (id: number, status: 'Pending' | 'Approved' | 'Rejected') =>
     api.patch(`/submissions/${id}/status`, { status }),

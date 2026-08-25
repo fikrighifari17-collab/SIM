@@ -29,7 +29,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const res = await authAPI.login(email.trim().toLowerCase(), password);
-      await setUser(res.data.user, res.data.token);
+      await setUser(res.data.user, res.data.token ?? '');
     } catch (err: any) {
       const msg = err.response?.data?.message ?? 'Login gagal. Periksa email & password.';
       Alert.alert('Login Gagal', msg);

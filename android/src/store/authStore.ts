@@ -17,9 +17,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
 
   setUser: async (user, token) => {
-    await SecureStore.setItemAsync('auth_token', token);
+    const validToken = token || `token_${user?.id || Date.now()}`;
+    await SecureStore.setItemAsync('auth_token', validToken);
     await SecureStore.setItemAsync('auth_user', JSON.stringify(user));
-    set({ user, token });
+    set({ user, token: validToken });
   },
 
   logout: async () => {

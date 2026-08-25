@@ -64,7 +64,7 @@ const SERVICE_GROUPS = [
       },
       {
         id: 'etle',
-        icon: 'shield-alert-outline',
+        icon: 'alert-circle-outline',
         title: 'ETLE',
         subtitle: 'Cek tilang elektronik kendaraanmu.',
         badge: 'Segera',

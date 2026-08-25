@@ -16,42 +16,55 @@ import PaymentScreen from './screens/PaymentScreen';
 const DEFAULT_SUBMISSIONS = [
   {
     id: '1',
-    resiId: 'SIM-2026-0822-101',
-    nama: 'Budi Santoso (Dummy)',
-    nik: '3174052208900001',
-    noHp: '0800-0000-0001',
-    email: 'budi.santoso@example.com',
-    jenisSim: 'SIM A',
-    satpas: 'SATPAS Daan Mogot, Jakarta',
-    serviceTitle: 'Perpanjangan SIM Nasional',
-    date: '22/08/2026',
+    resiId: 'SIM-2026-8786',
+    nama: 'Satria',
+    nik: '3174052208900002',
+    noHp: '081298765432',
+    email: 'satria@gmail.com',
+    jenisSim: 'SIM C',
+    satpas: 'SATPAS Polres Metro Jakarta Timur',
+    serviceTitle: 'Pendaftaran SIM Baru',
+    date: '25/08/2026',
     status: 'Pending',
   },
   {
     id: '2',
-    resiId: 'SIM-2026-0822-102',
-    nama: 'Siti Rahmawati (Dummy)',
-    nik: '3175021205950003',
-    noHp: '0800-0000-0002',
-    email: 'siti.rahma@example.com',
-    jenisSim: 'SIM C',
-    satpas: 'SATPAS Metro Jakarta Selatan',
-    serviceTitle: 'Pendaftaran SIM Baru',
-    date: '21/08/2026',
-    status: 'Disetujui',
+    resiId: 'SIM-2026-7866',
+    nama: 'Budi Santoso',
+    nik: '3174052208900001',
+    noHp: '081298765432',
+    email: 'budi@gmail.com',
+    jenisSim: 'SIM A',
+    satpas: 'SATPAS Polres Metro Jakarta Selatan',
+    serviceTitle: 'Perpanjangan SIM Nasional',
+    date: '25/08/2026',
+    status: 'Pending',
   },
   {
     id: '3',
-    resiId: 'SIM-2026-0822-103',
-    nama: 'Ahmad Hidayat (Dummy)',
-    nik: '3201081503880004',
-    noHp: '0800-0000-0003',
-    email: 'ahmad.h@example.com',
+    resiId: 'SIM-2026-0822-412',
+    nama: 'Raka Pratama',
+    nik: '9213917237217321',
+    noHp: '085712345678',
+    email: 'raka@gmail.com',
     jenisSim: 'SIM Internasional',
-    satpas: 'SATPAS Daan Mogot, Jakarta',
+    satpas: 'SATPAS 1221 Daan Mogot, Jakarta Barat (Polda Metro Jaya)',
     serviceTitle: 'Pendaftaran SIM Internasional',
-    date: '20/08/2026',
-    status: 'Pending',
+    date: '22/08/2026',
+    status: 'Approved',
+  },
+  {
+    id: '4',
+    resiId: 'SIM-2026-0822-889',
+    nama: 'Dedi Kurniawan',
+    nik: '3174052208900009',
+    noHp: '081398765432',
+    email: 'dedi@gmail.com',
+    jenisSim: 'SIM A',
+    satpas: 'SATPAS 1221 Daan Mogot, Jakarta Barat (Polda Metro Jaya)',
+    serviceTitle: 'Perpanjangan SIM Nasional',
+    date: '22/08/2026',
+    status: 'Rejected',
   },
 ];
 
@@ -85,27 +98,26 @@ export default function App() {
   const [selectedService, setSelectedService] = useState(null);
 
   // Read persisted submissions on initial load
-  const [submissions, setSubmissions] = useState(() => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      try {
-        const savedSubs = window.localStorage.getItem('jejaksim_submissions');
-        if (savedSubs) return JSON.parse(savedSubs);
-      } catch (e) {}
-    }
-    return DEFAULT_SUBMISSIONS;
-  });
+  // Read live submissions from server / default
+  const [submissions, setSubmissions] = useState(DEFAULT_SUBMISSIONS);
 
-  // Persist submissions when modified
+  // Fetch live submissions from backend MySQL server
+  const fetchSubmissions = () => {
+    fetch('http://127.0.0.1:5000/api/submissions')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.submissions) && data.submissions.length > 0) {
+          setSubmissions(data.submissions);
+        }
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      try {
-        window.localStorage.setItem(
-          'jejaksim_submissions',
-          JSON.stringify(submissions)
-        );
-      } catch (e) {}
-    }
-  }, [submissions]);
+    fetchSubmissions();
+    const interval = setInterval(fetchSubmissions, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleOpenService = (service) => {
     setSelectedService(service);
@@ -117,14 +129,30 @@ export default function App() {
 
   const handleAddSubmission = (newSubmission) => {
     setSubmissions((prev) => [newSubmission, ...prev]);
+    fetchSubmissions();
   };
 
   const handleUpdateStatus = (submissionId, newStatus) => {
+    let mappedStatus = newStatus;
+    if (newStatus === 'Disetujui' || newStatus === 'Approved') mappedStatus = 'Approved';
+    if (newStatus === 'Ditolak' || newStatus === 'Rejected') mappedStatus = 'Rejected';
+
     setSubmissions((prev) =>
       prev.map((sub) =>
-        sub.id === submissionId ? { ...sub, status: newStatus } : sub
+        (sub.id === submissionId || sub.resiId === submissionId || sub.resi_id === submissionId)
+          ? { ...sub, status: mappedStatus }
+          : sub
       )
     );
+
+    // Sync to MySQL backend
+    fetch(`http://127.0.0.1:5000/api/submissions/${submissionId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: mappedStatus }),
+    })
+      .then(() => fetchSubmissions())
+      .catch(() => {});
   };
 
   const handleTabChange = (tab) => {

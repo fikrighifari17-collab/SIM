@@ -19,15 +19,44 @@ const DELIVERY_OPTIONS = [
   { value: 'pickup', label: 'Ambil di SATPAS', desc: 'Ambil sendiri setelah SIM selesai' },
 ];
 
+const DEFAULT_SATPAS_LIST = [
+  'SATPAS 1221 Daan Mogot, Jakarta Barat (Polda Metro Jaya)',
+  'SATPAS Polres Metro Jakarta Selatan',
+  'SATPAS Polres Metro Jakarta Timur',
+  'SATPAS Polres Metro Jakarta Pusat',
+  'SATPAS Polrestro Depok, Jawa Barat',
+  'SATPAS Polresta Tangerang Kota, Banten',
+  'SATPAS Polresta Tangerang Selatan, Banten',
+  'SATPAS Polrestro Bekasi Kota, Jawa Barat',
+  'SATPAS Polresta Bandung, Jawa Barat',
+  'SATPAS Polrestabes Bandung, Jawa Barat',
+  'SATPAS Polresta Bogor Kota, Jawa Barat',
+  'SATPAS Polresta Cirebon, Jawa Barat',
+  'SATPAS Polrestabes Semarang, Jawa Tengah',
+  'SATPAS Polresta Surakarta (Solo), Jawa Tengah',
+  'SATPAS Polresta Magelang, Jawa Tengah',
+  'SATPAS Polresta Yogyakarta (DIY)',
+  'SATPAS Polrestabes Surabaya, Jawa Timur',
+  'SATPAS Polresta Malang Kota, Jawa Timur',
+  'SATPAS Polresta Sidoarjo, Jawa Timur',
+  'SATPAS Polresta Denpasar, Bali',
+  'SATPAS Polrestabes Medan, Sumatera Utara',
+  'SATPAS Polresta Pekanbaru, Riau',
+  'SATPAS Polresta Palembang, Sumatera Selatan',
+  'SATPAS Polrestabes Makassar, Sulawesi Selatan',
+  'SATPAS Polresta Balikpapan, Kalimantan Timur',
+];
+
 export default function SubmissionFormScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<Route>();
   const { serviceId, title } = route.params;
   const { user } = useAuthStore();
 
-  const [satpasList, setSatpasList] = useState<string[]>([]);
-  const [loadingSatpas, setLoadingSatpas] = useState(true);
-  const [jenisSim, setJenisSim] = useState<JenisSIM>('A');
+  const isInternasional = (serviceId || '').toLowerCase().includes('internasional') || (title || '').toLowerCase().includes('internasional');
+  const [satpasList, setSatpasList] = useState<string[]>(DEFAULT_SATPAS_LIST);
+  const [loadingSatpas, setLoadingSatpas] = useState(false);
+  const [jenisSim, setJenisSim] = useState<JenisSIM>(isInternasional ? 'Internasional' : 'A');
   const [selectedSatpas, setSelectedSatpas] = useState('');
   const [delivery, setDelivery] = useState('pos');
   const [noHp, setNoHp] = useState(user?.no_hp ?? '');
@@ -36,9 +65,12 @@ export default function SubmissionFormScreen() {
 
   useEffect(() => {
     satpasAPI.getAll()
-      .then(res => setSatpasList(res.data.satpas ?? []))
-      .catch(() => {})
-      .finally(() => setLoadingSatpas(false));
+      .then(res => {
+        if (res.data?.satpas && Array.isArray(res.data.satpas) && res.data.satpas.length > 0) {
+          setSatpasList(res.data.satpas);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const handleNext = () => {
@@ -130,7 +162,7 @@ export default function SubmissionFormScreen() {
                   <Ionicons name={showSatpasPicker ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.textSecondary} />
                 </TouchableOpacity>
                 {showSatpasPicker && (
-                  <View style={styles.dropdown}>
+                  <ScrollView style={styles.dropdown} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                     {satpasList.map((nama, i) => (
                       <TouchableOpacity
                         key={i}
@@ -140,7 +172,7 @@ export default function SubmissionFormScreen() {
                         <Text style={styles.dropdownName}>{nama}</Text>
                       </TouchableOpacity>
                     ))}
-                  </View>
+                  </ScrollView>
                 )}
               </>
             )}

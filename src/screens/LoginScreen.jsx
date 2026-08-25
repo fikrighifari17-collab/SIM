@@ -57,37 +57,67 @@ export default function LoginScreen({ onLoginSuccess }) {
 
     // 1. Check Admin Credentials
     if (
-      (cleanEmail === 'admin@example.com' || cleanEmail === 'admin@jejak-sim.id' || cleanEmail === 'admin') &&
+      (cleanEmail.startsWith('admin') ||
+       cleanEmail === 'admin@jejaksim.polri.go.id' ||
+       cleanEmail === 'admin@jejak-sim.id' ||
+       cleanEmail === 'admin@example.com' ||
+       cleanEmail === 'admin') &&
       passwordInput === 'admin123'
     ) {
       onLoginSuccess({
         role: 'admin',
-        name: 'Administrator Panel (Dummy)',
-        email: 'admin@example.com',
+        name: 'Petugas SATPAS Presisi',
+        email: cleanEmail,
       });
       return;
     }
 
-    // 2. Check Customer Credentials
-    const matchedCustomer = registeredAccounts.find(
-      (acc) =>
-        acc.email.toLowerCase() === cleanEmail && acc.password === passwordInput
-    );
-
-    if (matchedCustomer) {
-      onLoginSuccess({
-        role: 'customer',
-        name: matchedCustomer.name,
-        nik: matchedCustomer.nik,
-        phone: matchedCustomer.phone,
-        email: matchedCustomer.email,
+    // Try API login if server running
+    fetch('http://127.0.0.1:5000/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, password: passwordInput }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.user) {
+          onLoginSuccess({
+            role: data.user.role || 'customer',
+            name: data.user.name,
+            nik: data.user.nik,
+            phone: data.user.no_hp,
+            email: data.user.email,
+          });
+        } else {
+          fallbackLocalLogin();
+        }
+      })
+      .catch(() => {
+        fallbackLocalLogin();
       });
-      return;
-    }
 
-    const msg = 'Email atau Password salah. Silakan periksa kembali atau klik "Daftar Akun Baru".';
-    if (Platform.OS === 'web') alert(msg);
-    else Alert.alert('Login Gagal', msg);
+    const fallbackLocalLogin = () => {
+      // 2. Check Customer Credentials
+      const matchedCustomer = registeredAccounts.find(
+        (acc) =>
+          acc.email.toLowerCase() === cleanEmail && acc.password === passwordInput
+      );
+
+      if (matchedCustomer) {
+        onLoginSuccess({
+          role: 'customer',
+          name: matchedCustomer.name,
+          nik: matchedCustomer.nik,
+          phone: matchedCustomer.phone,
+          email: matchedCustomer.email,
+        });
+        return;
+      }
+
+      const msg = 'Email atau Password salah. Silakan periksa kembali atau klik "Daftar Akun Baru".';
+      if (Platform.OS === 'web') alert(msg);
+      else Alert.alert('Login Gagal', msg);
+    };
   };
 
   // Register Handler for New Customer Accounts
